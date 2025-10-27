@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from googleapiclient.discovery import build
 from textblob import TextBlob
 import re
@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Flask backend is running! 🚀 Use POST /analyze to analyze comments."
+    return render_template('index.html') # Halaman index 
 
 YOUTUBE_API_KEY = "YOUR_YOUTUBE_API_KEY"
 
