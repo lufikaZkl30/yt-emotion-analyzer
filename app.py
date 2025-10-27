@@ -1,75 +1,34 @@
-from flask import Flask, render_template, request, jsonify
-from textblob import TextBlob
-from googleapiclient.discovery import build
-from dotenv import load_dotenv
-import os, re
-
-load_dotenv()
+from flask import Flask, request, jsonify, send_from_directory
 app = Flask(__name__)
 
-API_KEY = os.getenv("YOUTUBE_API_KEY")
-
-def extract_video_id(url):
-    match = re.search(r"(?:v=|youtu\.be/)([a-zA-Z0-9_-]{11})", url)
-    return match.group(1) if match else None
-
-def get_youtube_comments(video_id):
-    youtube = build("youtube", "v3", developerKey=API_KEY)
-    comments = []
-
-    request = youtube.commentThreads().list(
-        part="snippet",
-        videoId=video_id,
-        maxResults=20,
-        textFormat="plainText"
-    )
-    response = request.execute()
-
-    for item in response["items"]:
-        comment = item["snippet"]["topLevelComment"]["snippet"]["textDisplay"]
-        comments.append(comment)
-
-    return comments
-
 @app.route('/')
-def index():
-    return render_template('index.html')
+def serve_index():
+    return send_from_directory('.', 'index.html')
+
+@app.route('/script.js')
+def serve_script():
+    return send_from_directory('.', 'script.js')
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
-    video_url = request.form.get('youtubeLinkInput')
-    video_id = extract_video_id(video_url)
-
-    if not video_id:
-        return jsonify({"error": "URL YouTube tidak valid!"}), 400
-
-    try:
-        comments = get_youtube_comments(video_id)
-    except Exception as e:
-        return jsonify({"error": f"Gagal ambil komentar: {e}"}), 500
-
-    pos, neg, neu = 0, 0, 0
-    for c in comments:
-        polarity = TextBlob(c).sentiment.polarity
-        if polarity > 0.1:
-            pos += 1
-        elif polarity < -0.1:
-            neg += 1
-        else:
-            neu += 1
-
-    total = len(comments)
-    hasil = {
-        "video_url": video_url,
-        "positive": round(pos / total * 100, 2),
-        "negative": round(neg / total * 100, 2),
-        "neutral": round(neu / total * 100, 2),
-        "total_comments": total,
-        "top_comment": max(comments, key=lambda c: TextBlob(c).sentiment.polarity),
-        "worst_comment": min(comments, key=lambda c: TextBlob(c).sentiment.polarity)
-    }
-
-    return jsonify(hasil)
+    data = request.get_json()
+    video_url = data.get('url', '')
+    # Dummy response (buat testing)
+    return jsonify({
+        "video_title": "Sample Video",
+        "video_thumbnail": "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
+        "total_comments": 523,
+        "total_likes": 1200,
+        "sentiment_summary": {"positive": 70, "neutral": 20, "negative": 10},
+        "emotions": {"joy": 60, "anger": 5, "sadness": 8, "surprise": 12, "fear": 5, "neutral": 10},
+        "most_positive_comment": "I love this video!",
+        "most_negative_comment": "Worst thing I’ve ever seen.",
+        "most_liked_comment": "Amazing work!",
+        "comments": [
+            {"text": "Great video!", "sentiment": "positive", "likes": 45, "time": "2h ago"},
+            {"text": "Not my taste", "sentiment": "negative", "likes": 3, "time": "5h ago"},
+        ]
+    })
 
 if __name__ == '__main__':
     app.run(debug=True)
