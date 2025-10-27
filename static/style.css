@@ -1,0 +1,72 @@
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #020617; /* slate-950 */
+    color: #e2e8f0; /* slate-200 */
+}
+
+/* Light mode background */
+html:not(.dark) body {
+        background-color: #f1f5f9; /* slate-100 */
+        color: #0f172a; /* slate-900 */
+}
+
+/* Main gradient background for dark mode */
+.main-background {
+    background-image: radial-gradient(ellipse 80% 80% at 50% -20%, rgba(30, 31, 75, 0.6), rgba(255, 255, 255, 0));
+}
+
+/* Custom gradient for buttons/charts */
+.brand-gradient {
+    background-image: linear-gradient(to right, #3A3AFF, #00D1FF);
+}
+
+/* Card styles (reusable) */
+.card {
+    background-color: rgba(15, 23, 42, 0.5); /* slate-900/50 */
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem; /* rounded-2xl */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+html:not(.dark) .card {
+    background-color: rgba(255, 255, 255, 0.7); /* white/70 */
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Simple CSS loader */
+.loader {
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    border-left-color: #00D1FF;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+html:not(.dark) .loader {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-left-color: #3A3AFF;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Custom scrollbar for table */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #3A3AFF;
+    border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #00D1FF;
+}
