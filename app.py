@@ -9,6 +9,7 @@ app = Flask(__name__)
 def home():
     return render_template('index.html') # Halaman index 
 
+# API key YouTube Data API v3 
 YOUTUBE_API_KEY = "YOUR_YOUTUBE_API_KEY"
 
 @app.route('/analyze', methods=['POST'])
