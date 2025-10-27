@@ -1,83 +1,102 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, render_template, request, jsonify
 from googleapiclient.discovery import build
 from textblob import TextBlob
-import re
+from dotenv import load_dotenv
+import os, re
 
 app = Flask(__name__)
 
+# Load API key dari file .env
+load_dotenv()
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
+
+# --- ROUTE UTAMA ---
 @app.route('/')
-def home():
-    return render_template('index.html') # Halaman index 
+def index():
+    return render_template('index.html')
 
-# API key YouTube Data API v3 
-YOUTUBE_API_KEY = "YOUR_YOUTUBE_API_KEY"
 
+# --- ROUTE UNTUK ANALISIS KOMENTAR ---
 @app.route('/analyze', methods=['POST'])
 def analyze():
     data = request.get_json()
-    video_url = data.get('url')
+    youtube_url = data.get('youtube_url')
 
-    # ambil video ID dari URL
-    match = re.search(r"v=([a-zA-Z0-9_-]+)", video_url)
+    # Ambil video ID dari link panjang & pendek
+    match = re.search(r"(?:v=|youtu\.be/)([a-zA-Z0-9_-]{11})", youtube_url)
     if not match:
-        return jsonify({'error': 'Invalid YouTube URL'}), 400
+        return jsonify({"error": "Invalid YouTube link"}), 400
     video_id = match.group(1)
 
-    youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
+    try:
+        # Ambil data video dan komentar dari API
+        youtube = build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
 
-    # ambil komentar
-    comments = []
-    request_api = youtube.commentThreads().list(
-        part='snippet',
-        videoId=video_id,
-        maxResults=50
-    )
-    response = request_api.execute()
+        video_response = youtube.videos().list(
+            part="snippet,statistics",
+            id=video_id
+        ).execute()
 
-    for item in response['items']:
-        comment = item['snippet']['topLevelComment']['snippet']
-        text = comment['textDisplay']
-        likes = comment['likeCount']
-        time = comment['publishedAt']
+        video_info = video_response['items'][0]
+        title = video_info['snippet']['title']
+        thumbnail = video_info['snippet']['thumbnails']['high']['url']
+        like_count = int(video_info['statistics'].get('likeCount', 0))
 
-        analysis = TextBlob(text)
-        sentiment = (
-            'positive' if analysis.sentiment.polarity > 0.1 else
-            'negative' if analysis.sentiment.polarity < -0.1 else
-            'neutral'
-        )
+        comments = []
+        comment_response = youtube.commentThreads().list(
+            part="snippet",
+            videoId=video_id,
+            maxResults=50,
+            textFormat="plainText"
+        ).execute()
 
-        comments.append({
-            'text': text,
-            'sentiment': sentiment,
-            'likes': likes,
-            'time': time
-        })
+        for item in comment_response['items']:
+            comment = item['snippet']['topLevelComment']['snippet']
+            text = comment['textDisplay']
+            likes = comment['likeCount']
+            time = comment['publishedAt']
+            
+            # Sentiment Analysis
+            sentiment = TextBlob(text).sentiment.polarity
+            if sentiment > 0.1:
+                sentiment_label = "positive"
+            elif sentiment < -0.1:
+                sentiment_label = "negative"
+            else:
+                sentiment_label = "neutral"
 
-    # hitung summary
-    pos = sum(1 for c in comments if c['sentiment'] == 'positive')
-    neg = sum(1 for c in comments if c['sentiment'] == 'negative')
-    neu = sum(1 for c in comments if c['sentiment'] == 'neutral')
-    total = len(comments)
+            comments.append({
+                "text": text,
+                "likes": likes,
+                "time": time,
+                "sentiment": sentiment_label
+            })
 
-    sentiment_summary = {
-        'positive': round(pos / total * 100, 2),
-        'neutral': round(neu / total * 100, 2),
-        'negative': round(neg / total * 100, 2),
-    }
+        # Hitung summary
+        total_comments = len(comments)
+        sentiment_counts = {"positive": 0, "negative": 0, "neutral": 0}
+        for c in comments:
+            sentiment_counts[c["sentiment"]] += 1
 
-    return jsonify({
-        'video_title': 'Example Title',
-        'video_thumbnail': 'https://placehold.co/600x400',
-        'total_comments': total,
-        'total_likes': 12345,
-        'sentiment_summary': sentiment_summary,
-        'emotions': {'joy': 40, 'anger': 10, 'sadness': 10, 'surprise': 20, 'fear': 5, 'neutral': 15},
-        'most_positive_comment': max(comments, key=lambda c: c['likes'])['text'],
-        'most_negative_comment': min(comments, key=lambda c: c['likes'])['text'],
-        'most_liked_comment': max(comments, key=lambda c: c['likes'])['text'],
-        'comments': comments
-    })
+        sentiment_percent = {
+            k: round(v / total_comments * 100, 2) if total_comments > 0 else 0
+            for k, v in sentiment_counts.items()
+        }
+
+        result = {
+            "title": title,
+            "thumbnail": thumbnail,
+            "total_likes": like_count,
+            "total_comments": total_comments,
+            "sentiment_percent": sentiment_percent,
+            "comments": comments
+        }
+
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True)
