@@ -261,32 +261,53 @@
     </div>
 
 <script>
-    document.getElementById('youtubeLinkInput').addEventListener('submit', async (e) => {
-        e.preventDefault();
+document.getElementById("analysisForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-        const videoUrl = document.getElementById('youtubeLinkInput').value;
-        const response = await fetch('/analyze', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `videoUrl=${encodeURIComponent(videoUrl)}`
+    const youtubeLinkInput = document.getElementById("youtubeLinkInput").value;
+    const button = document.getElementById("analyzeButton");
+    button.disabled = true;
+    button.innerText = "Analyzing...";
+
+    const formData = new FormData();
+    formData.append("youtubeLinkInput", youtubeLinkInput);
+
+    try {
+        const res = await fetch("/analyze", {
+            method: "POST",
+            body: formData
         });
 
-        const data = await response.json();
+        const data = await res.json();
+        button.disabled = false;
+        button.innerText = "Analyze";
 
-        // Coba tampilkan hasilnya di console dulu
-        console.log(data);
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
 
-        // Misal kita mau munculkan hasilnya di alert sederhana dulu
-        alert(`
-        📊 Hasil Analisis:
-        - Positive: ${data.positive}%
-        - Negative: ${data.negative}%
-        - Neutral: ${data.neutral}%
-        ⭐ Komentar Terbaik: ${data.top_comment}
-        💬 Komentar Terburuk: ${data.worst_comment}`
-    );
-    });
+        // Tampilkan hasil ke user
+        document.getElementById("result").innerHTML = `
+            <div class="mt-6 p-4 bg-white/10 rounded-xl text-white">
+                <p><strong>Positive:</strong> ${data.positive}%</p>
+                <p><strong>Negative:</strong> ${data.negative}%</p>
+                <p><strong>Neutral:</strong> ${data.neutral}%</p>
+                <p><strong>Total Comments:</strong> ${data.total_comments}</p>
+                <p><strong>Top Comment:</strong> "${data.top_comment}"</p>
+                <p><strong>Worst Comment:</strong> "${data.worst_comment}"</p>
+            </div>
+        `;
+    } catch (err) {
+        console.error(err);
+        alert("Gagal memproses analisis!");
+    }
+});
 </script>
+
+<!-- tempat hasil -->
+<div id="result"></div>
+
 
   <!-- script fungsi website -->
 <script defer src="{{ url_for('static', filename='script.js') }}"></script>
