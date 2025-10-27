@@ -15,8 +15,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/style.css">
-   
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <!-- LOGO -->
+   <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
+
 </head>
 <body class="min-h-screen antialiased">
 
@@ -50,7 +55,7 @@
                 Paste a YouTube video link to get an AI-powered analysis of audience sentiment and emotions straight from the comments.
             </p>
     
-            <form id="analysisForm" class="w-full max-w-2xl">
+            <form id="analysisForm" class="w-full max-w-2xl" method="POST" action="/analyze">
                 <div class="flex flex-col sm:flex-row items-center gap-4">
                     <div class="relative flex-grow w-full">
                         <!-- Search Icon -->
@@ -255,7 +260,35 @@
         </div>
     </div>
 
-    <!-- script fungsi website -->
-    <script src="/static/script.js"></script>
+<script>
+    document.getElementById('youtubeLinkInput').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const videoUrl = document.getElementById('youtubeLinkInput').value;
+        const response = await fetch('/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `videoUrl=${encodeURIComponent(videoUrl)}`
+        });
+
+        const data = await response.json();
+
+        // Coba tampilkan hasilnya di console dulu
+        console.log(data);
+
+        // Misal kita mau munculkan hasilnya di alert sederhana dulu
+        alert(`
+        📊 Hasil Analisis:
+        - Positive: ${data.positive}%
+        - Negative: ${data.negative}%
+        - Neutral: ${data.neutral}%
+        ⭐ Komentar Terbaik: ${data.top_comment}
+        💬 Komentar Terburuk: ${data.worst_comment}`
+    );
+    });
+</script>
+
+  <!-- script fungsi website -->
+<script defer src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
