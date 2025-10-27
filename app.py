@@ -1,7 +1,18 @@
 from flask import Flask, render_template, request, jsonify
 from textblob import TextBlob
+from googleapiclient.discovery import build
+from dotenv import load_dotenv
+import os
+import re
+
+# Load variabel dari file .env
+load_dotenv()
 
 app = Flask(__name__)
+
+# Ambil API Key dari environment
+API_KEY = os.getenv("YOUTUBE_API_KEY")
+API_URL = os.getenv("API_URL")
 
 @app.route('/')
 def index():
@@ -9,16 +20,29 @@ def index():
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
-    # Ambil data dari form input di HTML
     video_url = request.form.get('youtubeLinkInput')
 
-    # (Sementara) simulasi komentar
-    comments = [
-        "Video ini keren banget!",
-        "Agak membosankan sih.",
-        "Suka banget sama pembahasan ini!",
-        "Kurang jelas di bagian akhir."
-    ]
+    # Ambil ID video dari URL (regex)
+    video_id_match = re.search(r"v=([a-zA-Z0-9_-]{11})", video_url)
+    if not video_id_match:
+        return jsonify({"error": "URL YouTube tidak valid."}), 400
+
+    video_id = video_id_match.group(1)
+
+    # Hubungkan ke YouTube API
+    youtube = build('youtube', 'v3', developerKey=API_KEY)
+
+    # Ambil komentar (maks 20 komentar)
+    request_api = youtube.commentThreads().list(
+        part='snippet',
+        videoId=video_id,
+        maxResults=20,
+        textFormat='plainText'
+    )
+    response = request_api.execute()
+
+    # Ambil teks komentar
+    comments = [item['snippet']['topLevelComment']['snippet']['textDisplay'] for item in response['items']]
 
     # Analisis sentimen
     pos, neg, neu = 0, 0, 0
@@ -34,6 +58,7 @@ def analyze():
     total = len(comments)
     hasil = {
         "video_url": video_url,
+        "total_comments": total,
         "positive": round(pos / total * 100, 2),
         "negative": round(neg / total * 100, 2),
         "neutral": round(neu / total * 100, 2),
