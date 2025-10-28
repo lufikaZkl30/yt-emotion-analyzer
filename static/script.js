@@ -223,49 +223,7 @@ document.addEventListener("DOMContentLoaded", () => {
         el.addEventListener("input", applyFilters);
     });
 
-    // ========== DOWNLOAD REPORT (EXCEL) ============
-    document.getElementById("downloadReportBtn").addEventListener("click", () => {
-        if (!window.lastAnalyzedData) {
-            alert("Please analyze a video first before downloading the report.");
-            return;
-    }
-
-    const data = window.lastAnalyzedData;
-
-    // Buat sheet data komentar
-    const commentsSheet = data.comments.map(c => ({
-        Comment: c.text,
-        Sentiment: c.sentiment,
-        Likes: c.likes,
-        Time: new Date(c.time).toLocaleString()
-    }));
-
-    // Buat workbook baru
-    const wb = XLSX.utils.book_new();
-
-    // Tambahkan sheet “Video Summary”
-    const summary = [
-        ["Video Title", data.title],
-        ["Total Likes", data.total_likes],
-        ["Total Comments", data.total_comments],
-        ["Most Positive Comment", data.highlights.positive],
-        ["Most Negative Comment", data.highlights.negative],
-        ["Most Liked Comment", data.highlights.liked]
-    ];
-    const wsSummary = XLSX.utils.aoa_to_sheet(summary);
-    XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
-
-    // Tambahkan sheet “Comments”
-    const wsComments = XLSX.utils.json_to_sheet(commentsSheet);
-    XLSX.utils.book_append_sheet(wb, wsComments, "Comments");
-
-    // Simpan file Excel
-    XLSX.writeFile(wb, `${data.title.replace(/[^\w\s]/gi, "_")}_Report.xlsx`);
-    });
-
-    print("Fetching comments...")
-    print("Analyzing sentiments...")
-    print("Finished analysis.")
+    
 
 
 });
