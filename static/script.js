@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
         errorDiv.classList.add("hidden");
         loading.classList.remove("hidden");
-        window.lastAnalyzedData = data;
+        // window.lastAnalyzedData = data;
 
         try {
             const response = await fetch("/analyze", {
