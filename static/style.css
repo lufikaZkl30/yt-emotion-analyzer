@@ -83,3 +83,32 @@ html:not(.dark) .custom-scrollbar::-webkit-scrollbar-track {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #00D1FF;
 }
+
+/* Smooth transition for Dashboard appearance */
+#dashboardPage {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s ease-in-out, transform 0.6s ease-in-out;
+}
+
+/* Saat aktif muncul dengan efek fade + slide-up */
+#dashboardPage.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Sedikit delay untuk card biar muncul berurutan */
+#dashboardPage.active .card {
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
