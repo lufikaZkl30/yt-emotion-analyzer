@@ -1,97 +1,111 @@
 from flask import Flask, render_template, request, jsonify
-from googleapiclient.discovery import build
 from textblob import TextBlob
-from dotenv import load_dotenv
-import os, re
+from transformers import pipeline
+from googleapiclient.discovery import build
+import re
 
 app = Flask(__name__)
 
-# Load API key dari file .env
-load_dotenv()
-YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
+# === SET YOUR YOUTUBE API KEY ===
+YOUTUBE_API_KEY = "YOUR_API_KEY_HERE"  # ← ganti dengan API key kamu
 
-# --- ROUTE UTAMA ---
+# === NLP Models ===
+emotion_model = pipeline("text-classification", model="j-hartmann/emotion-english-distilroberta-base", top_k=None)
+
+# === Helper: Extract Video ID from YouTube URL ===
+def extract_video_id(url):
+    pattern = r"(?:v=|\/)([0-9A-Za-z_-]{11}).*"
+    match = re.search(pattern, url)
+    return match.group(1) if match else None
+
+# === Helper: Get YouTube Comments ===
+def get_video_comments(video_id, max_comments=50):
+    youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
+    request = youtube.commentThreads().list(
+        part="snippet",
+        videoId=video_id,
+        maxResults=100,
+        textFormat="plainText"
+    )
+    response = request.execute()
+
+    comments_data = []
+    for item in response.get('items', [])[:max_comments]:
+        snippet = item['snippet']['topLevelComment']['snippet']
+        comments_data.append({
+            "text": snippet['textDisplay'],
+            "likes": snippet['likeCount'],
+            "time": snippet['publishedAt']
+        })
+    return comments_data
+
+# === Helper: Analyze Sentiment ===
+def analyze_sentiment(text):
+    analysis = TextBlob(text)
+    polarity = analysis.sentiment.polarity
+    if polarity > 0.1:
+        return "positive"
+    elif polarity < -0.1:
+        return "negative"
+    else:
+        return "neutral"
+
+# === Helper: Analyze Emotion ===
+def analyze_emotion(text):
+    emotions = emotion_model(text)
+    top_emotion = max(emotions[0], key=lambda x: x["score"])
+    return top_emotion["label"]
+
+# === ROUTES ===
 @app.route('/')
 def index():
     return render_template('index.html')
 
-
-# --- ROUTE UNTUK ANALISIS KOMENTAR ---
 @app.route('/analyze', methods=['POST'])
 def analyze():
     data = request.get_json()
-    youtube_url = data.get('youtube_url')
+    youtube_url = data.get("youtube_url")
 
-    # Ambil video ID dari link panjang & pendek
-    match = re.search(r"(?:v=|youtu\.be/)([a-zA-Z0-9_-]{11})", youtube_url)
-    if not match:
-        return jsonify({"error": "Invalid YouTube link"}), 400
-    video_id = match.group(1)
+    video_id = extract_video_id(youtube_url)
+    if not video_id:
+        return jsonify({"error": "Invalid YouTube URL."}), 400
 
     try:
-        # Ambil data video dan komentar dari API
-        youtube = build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
+        comments = get_video_comments(video_id)
+        if not comments:
+            return jsonify({"error": "No comments found."}), 404
 
-        video_response = youtube.videos().list(
-            part="snippet,statistics",
-            id=video_id
-        ).execute()
-
-        video_info = video_response['items'][0]
-        title = video_info['snippet']['title']
-        thumbnail = video_info['snippet']['thumbnails']['high']['url']
-        like_count = int(video_info['statistics'].get('likeCount', 0))
-
-        comments = []
-        comment_response = youtube.commentThreads().list(
-            part="snippet",
-            videoId=video_id,
-            maxResults=50,
-            textFormat="plainText"
-        ).execute()
-
-        for item in comment_response['items']:
-            comment = item['snippet']['topLevelComment']['snippet']
-            text = comment['textDisplay']
-            likes = comment['likeCount']
-            time = comment['publishedAt']
-            
-            # Sentiment Analysis
-            sentiment = TextBlob(text).sentiment.polarity
-            if sentiment > 0.1:
-                sentiment_label = "positive"
-            elif sentiment < -0.1:
-                sentiment_label = "negative"
-            else:
-                sentiment_label = "neutral"
-
-            comments.append({
-                "text": text,
-                "likes": likes,
-                "time": time,
-                "sentiment": sentiment_label
-            })
-
-        # Hitung summary
-        total_comments = len(comments)
         sentiment_counts = {"positive": 0, "negative": 0, "neutral": 0}
-        for c in comments:
-            sentiment_counts[c["sentiment"]] += 1
+        emotion_counts = {}
 
-        sentiment_percent = {
-            k: round(v / total_comments * 100, 2) if total_comments > 0 else 0
-            for k, v in sentiment_counts.items()
-        }
+        for comment in comments:
+            sentiment = analyze_sentiment(comment["text"])
+            emotion = analyze_emotion(comment["text"])
 
+            comment["sentiment"] = sentiment
+            comment["emotion"] = emotion
+
+            sentiment_counts[sentiment] += 1
+            emotion_counts[emotion] = emotion_counts.get(emotion, 0) + 1
+
+        # Sort by likes to find top comments
+        comments_sorted = sorted(comments, key=lambda x: x["likes"], reverse=True)
+        total_comments = len(comments)
+
+        # Prepare response
         result = {
-            "title": title,
-            "thumbnail": thumbnail,
-            "total_likes": like_count,
+            "video_id": video_id,
             "total_comments": total_comments,
-            "sentiment_percent": sentiment_percent,
-            "comments": comments
+            "total_likes": sum([c["likes"] for c in comments]),
+            "sentiment_summary": sentiment_counts,
+            "emotion_summary": emotion_counts,
+            "comments": comments_sorted,
+            "highlights": {
+                "positive": next((c for c in comments if c["sentiment"] == "positive"), None),
+                "negative": next((c for c in comments if c["sentiment"] == "negative"), None),
+                "liked": comments_sorted[0] if comments_sorted else None
+            }
         }
-
         return jsonify(result)
 
     except Exception as e:
