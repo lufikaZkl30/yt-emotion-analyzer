@@ -21,19 +21,15 @@
 
     <!-- JS CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Fungsi  download hasil ke excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
 
     <link rel="icon" type="image/png" href="/static/logo.png">
 
 </head>
 <body class="min-h-screen antialiased">
-
-    <!-- Dark Mode Toggle Button -->
-    <button id="darkModeToggle" class="fixed top-4 right-4 z-50 p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-white/10 dark:hover:bg-slate-800 transition-colors" title="Toggle dark mode">
-        <!-- Sun Icon (shown in dark mode) -->
-        <svg id="sunIcon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-        <!-- Moon Icon (shown in light mode) -->
-        <svg id="moonIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-    </button>
 
     <!-- 
       =================================
@@ -219,37 +215,70 @@
 
         <!-- ========== RIGHT COLUMN ========== -->
         <div class="flex flex-col gap-6 xl:col-span-2">
-            
             <!-- CHARTS -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-
-            <!-- Sentiment Chart -->
-            <div class="card p-6 h-full flex flex-col">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="card p-6 flex flex-col">
                 <h3 class="text-lg font-semibold mb-1 text-slate-900 dark:text-white">Sentiment Summary</h3>
                 <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">Overall comment sentiment (%)</p>
-                <div class="h-72 relative flex-grow">
-                    <canvas id="sentimentChart"></canvas>
-                    <div id="sentimentTotal" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <span class="text-3xl font-bold text-slate-900 dark:text-white">0%</span>
-                        <span class="text-sm text-slate-600 dark:text-slate-400">Total</span>
-                    </div>
+                <div class="relative flex-1">
+                <canvas id="sentimentChart" class="h-full w-full"></canvas>
+                <div id="sentimentTotal"
+                    class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span class="text-3xl font-bold text-slate-900 dark:text-white">0%</span>
+                    <span class="text-sm text-slate-600 dark:text-slate-400">Total</span>
+                </div>
                 </div>
             </div>
 
-            <!-- Emotion Chart -->
-            <div class="card p-6 h-full flex flex-col">
+            <div class="card p-6 flex flex-col">
                 <h3 class="text-lg font-semibold mb-1 text-slate-900 dark:text-white">Emotion Distribution</h3>
                 <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">Detected emotions (%)</p>
-                <div class="h-72 flex-grow">
-                    <canvas id="emotionChart"></canvas>
+                <div class="flex-1">
+                <canvas id="emotionChart" class="h-full w-full"></canvas>
                 </div>
             </div>
-
+            </div>
 
             <!-- COMMENT FEED -->
             <div class="card p-6">
             <h3 class="text-lg font-semibold mb-1 text-slate-900 dark:text-white">Comment Feed</h3>
-            <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">Live comments with sentiment analysis</p>
+            <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                Live comments with sentiment analysis
+            </p>
+
+            <!-- Filter & Sort Controls -->
+            <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
+                <input
+                id="commentSearch"
+                type="text"
+                placeholder="Filter by text..."
+                class="flex-1 min-w-[200px] px-4 py-2 rounded-lg bg-slate-800/50 text-slate-100 border border-slate-600 focus:ring-2 focus:ring-[#00D1FF] outline-none"
+                />
+
+                <div class="flex gap-3">
+                <select
+                    id="sentimentFilter"
+                    class="px-4 py-2 rounded-lg bg-slate-800/50 text-slate-100 border border-slate-600 focus:ring-2 focus:ring-[#00D1FF] outline-none"
+                >
+                    <option value="all">All Sentiments</option>
+                    <option value="positive">Positive</option>
+                    <option value="negative">Negative</option>
+                    <option value="neutral">Neutral</option>
+                </select>
+
+                <select
+                    id="sortOrder"
+                    class="px-4 py-2 rounded-lg bg-slate-800/50 text-slate-100 border border-slate-600 focus:ring-2 focus:ring-[#00D1FF] outline-none"
+                >
+                    <option value="default">Default Order</option>
+                    <option value="likes">Most Liked</option>
+                    <option value="newest">Newest</option>
+                    <option value="oldest">Oldest</option>
+                </select>
+                </div>
+            </div>
+
+            <!-- Comment Table -->
             <div class="overflow-auto max-h-96 custom-scrollbar">
                 <table class="w-full min-w-[600px] text-left">
                 <thead class="sticky top-0 bg-slate-200/80 dark:bg-slate-900/80 backdrop-blur-sm z-10">
@@ -260,14 +289,16 @@
                     <th class="p-4 text-sm font-semibold text-slate-600 dark:text-slate-300">Time</th>
                     </tr>
                 </thead>
-                <tbody id="commentsTableBody"
-                    class="divide-y divide-slate-200 dark:divide-white/10">
-                    <tr><td colspan="4"
-                        class="p-4 text-center text-slate-500 dark:text-slate-400">Please analyze a video to see comments.</td></tr>
+                <tbody id="commentsTableBody" class="divide-y divide-slate-200 dark:divide-white/10">
+                    <tr>
+                    <td colspan="4" class="p-4 text-center text-slate-500 dark:text-slate-400">
+                        Please analyze a video to see comments.
+                    </td>
+                    </tr>
                 </tbody>
                 </table>
             </div>
-            </div>
+
         </div>
         </div>
     </div>

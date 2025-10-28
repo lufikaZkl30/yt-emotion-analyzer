@@ -23,6 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
         errorDiv.classList.add("hidden");
         loading.classList.remove("hidden");
+        window.lastAnalyzedData = data;
 
         try {
             const response = await fetch("/analyze", {
@@ -162,9 +163,50 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });}
 
+    // =============== COMMENT FILTERING & SORTING ===============
+    const sentimentFilter = document.getElementById("sentimentFilter");
+    const sortOrder = document.getElementById("sortOrder");
+    const commentSearch = document.getElementById("commentSearch");
+    let allComments = [];
+
     function renderComments(comments) {
+        allComments = comments; // simpan semua komentar
+        applyFilters();
+    }
+
+    function applyFilters() {
+        let filtered = [...allComments];
+        const filterValue = sentimentFilter.value;
+        const sortValue = sortOrder.value;
+        const searchValue = commentSearch.value.toLowerCase();
+
+        // Filter sentiment
+        if (filterValue !== "all") {
+            filtered = filtered.filter(c => c.sentiment.toLowerCase() === filterValue);
+        }
+
+        // Filter by text
+        if (searchValue) {
+            filtered = filtered.filter(c => c.text.toLowerCase().includes(searchValue));
+        }
+
+        // Sort
+        if (sortValue === "likes") {
+            filtered.sort((a, b) => b.likes - a.likes);
+        } else if (sortValue === "newest") {
+            filtered.sort((a, b) => new Date(b.time) - new Date(a.time));
+        } else if (sortValue === "oldest") {
+            filtered.sort((a, b) => new Date(a.time) - new Date(b.time));
+        }
+
+        // Render hasil
         commentsTableBody.innerHTML = "";
-        comments.forEach(c => {
+        if (filtered.length === 0) {
+            commentsTableBody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500 dark:text-slate-400">No comments found.</td></tr>`;
+            return;
+        }
+
+        filtered.forEach(c => {
             const row = document.createElement("tr");
             row.innerHTML = `
                 <td class="p-4 text-slate-800 dark:text-slate-200">${c.text}</td>
@@ -175,4 +217,55 @@ document.addEventListener("DOMContentLoaded", () => {
             commentsTableBody.appendChild(row);
         });
     }
+
+    // Event listeners
+    [sentimentFilter, sortOrder, commentSearch].forEach(el => {
+        el.addEventListener("input", applyFilters);
+    });
+
+    // ========== DOWNLOAD REPORT (EXCEL) ============
+    document.getElementById("downloadReportBtn").addEventListener("click", () => {
+        if (!window.lastAnalyzedData) {
+            alert("Please analyze a video first before downloading the report.");
+            return;
+    }
+
+    const data = window.lastAnalyzedData;
+
+    // Buat sheet data komentar
+    const commentsSheet = data.comments.map(c => ({
+        Comment: c.text,
+        Sentiment: c.sentiment,
+        Likes: c.likes,
+        Time: new Date(c.time).toLocaleString()
+    }));
+
+    // Buat workbook baru
+    const wb = XLSX.utils.book_new();
+
+    // Tambahkan sheet “Video Summary”
+    const summary = [
+        ["Video Title", data.title],
+        ["Total Likes", data.total_likes],
+        ["Total Comments", data.total_comments],
+        ["Most Positive Comment", data.highlights.positive],
+        ["Most Negative Comment", data.highlights.negative],
+        ["Most Liked Comment", data.highlights.liked]
+    ];
+    const wsSummary = XLSX.utils.aoa_to_sheet(summary);
+    XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
+
+    // Tambahkan sheet “Comments”
+    const wsComments = XLSX.utils.json_to_sheet(commentsSheet);
+    XLSX.utils.book_append_sheet(wb, wsComments, "Comments");
+
+    // Simpan file Excel
+    XLSX.writeFile(wb, `${data.title.replace(/[^\w\s]/gi, "_")}_Report.xlsx`);
+    });
+
+    print("Fetching comments...")
+    print("Analyzing sentiments...")
+    print("Finished analysis.")
+
+
 });
