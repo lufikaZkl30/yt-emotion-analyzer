@@ -20,7 +20,6 @@ def extract_video_id(url):
     match = re.search(r"(?:v=|youtu\.be/|embed/)([a-zA-Z0-9_-]{11})", url)
     return match.group(1) if match else None
 
-
 # --- Halaman utama ---
 @app.route('/')
 def index():
