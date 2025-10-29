@@ -1,5 +1,6 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
 Flask==3.0.0
 google-api-python-client==2.111.0
 textblob==0.17.1
 transformers==4.41.0
-torch==2.5.1
+torch==2.0.1+cpu
