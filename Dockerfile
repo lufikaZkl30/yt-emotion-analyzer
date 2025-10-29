@@ -17,5 +17,5 @@ RUN pip install -r requirements.txt
 # Salin semua file project ke container
 COPY . .
 
-# Jalankan app.py sebagai server utama
+# Jalankan app.py sebagai server utamacls
 CMD ["python", "app.py"]
