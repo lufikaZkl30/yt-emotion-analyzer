@@ -223,7 +223,35 @@ document.addEventListener("DOMContentLoaded", () => {
         el.addEventListener("input", applyFilters);
     });
 
-    
+    // fungsi button download CSV
+    document.getElementById("downloadReportBtn").addEventListener("click", async () => {
+    try {
+        // Minta data hasil analisis ke backend Flask
+        const res = await fetch("/download-report", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({})
+        });
 
+        if (!res.ok) {
+            alert("Gagal membuat laporan.");
+            return;
+        }
+
+        // Ambil file Excel dari response
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "YTEmotionReport.xlsx";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error(err);
+        alert("Terjadi kesalahan saat mengunduh laporan.");
+    }
+    });
 
 });

@@ -102,6 +102,7 @@ html:not(.dark) .custom-scrollbar::-webkit-scrollbar-track {
     animation: fadeInUp 0.6s ease forwards;
 }
 
+
 @keyframes fadeInUp {
     from {
         opacity: 0;
