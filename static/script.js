@@ -226,20 +226,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // fungsi button download CSV
     document.getElementById("downloadReportBtn").addEventListener("click", async () => {
     try {
-        // Minta data hasil analisis ke backend Flask
-        const res = await fetch("/download-report", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({})
-        });
+        const response = await fetch("/download-report", { method: "POST" });
+        if (!response.ok) throw new Error("Download failed");
 
-        if (!res.ok) {
-            alert("Gagal membuat laporan.");
-            return;
-        }
-
-        // Ambil file Excel dari response
-        const blob = await res.blob();
+        const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -249,8 +239,8 @@ document.addEventListener("DOMContentLoaded", () => {
         a.remove();
         window.URL.revokeObjectURL(url);
     } catch (err) {
+        alert("Failed to download report!");
         console.error(err);
-        alert("Terjadi kesalahan saat mengunduh laporan.");
     }
     });
 

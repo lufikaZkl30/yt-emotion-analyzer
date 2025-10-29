@@ -1,107 +1,171 @@
 from flask import Flask, render_template, request, jsonify, send_file
-from textblob import TextBlob
 from googleapiclient.discovery import build
+from textblob import TextBlob
 from dotenv import load_dotenv
-import os
-import re
-import io
+from transformers import pipeline
 from openpyxl import Workbook
+import os, re, io
 
-load_dotenv()
+# --- Setup dasar ---
 app = Flask(__name__)
-API_KEY = os.getenv("YOUTUBE_API_KEY")
+load_dotenv()
 
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
+
+# Model emosi (Hugging Face)
+emotion_model = pipeline("text-classification", model="bhadresh-savani/distilbert-base-uncased-emotion")
+
+# --- Ekstrak ID video dari URL ---
 def extract_video_id(url):
-    pattern = r"(?:v=|youtu\.be/|embed/)([a-zA-Z0-9_-]{11})"
-    match = re.search(pattern, url)
+    match = re.search(r"(?:v=|youtu\.be/|embed/)([a-zA-Z0-9_-]{11})", url)
     return match.group(1) if match else None
 
+
+# --- Halaman utama ---
 @app.route('/')
 def index():
     return render_template('index.html')
 
+
+# --- Analisis komentar YouTube ---
 @app.route('/analyze', methods=['POST'])
 def analyze():
-    video_url = request.form.get('youtubeLinkInput')
-    video_id = extract_video_id(video_url)
+    data = request.get_json()
+    youtube_url = data.get('youtube_url')
+
+    video_id = extract_video_id(youtube_url)
     if not video_id:
         return jsonify({"error": "Invalid YouTube link"}), 400
 
-    youtube = build('youtube', 'v3', developerKey=API_KEY)
+    try:
+        youtube = build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
 
-    comments = []
-    response = youtube.commentThreads().list(
-        part="snippet",
-        videoId=video_id,
-        maxResults=30,
-        textFormat="plainText"
-    ).execute()
+        # --- Info video ---
+        video = youtube.videos().list(
+            part="snippet,statistics",
+            id=video_id
+        ).execute()["items"][0]
 
-    for item in response.get("items", []):
-        comment = item["snippet"]["topLevelComment"]["snippet"]["textDisplay"]
-        comments.append(comment)
+        title = video["snippet"]["title"]
+        thumbnail = video["snippet"]["thumbnails"]["high"]["url"]
+        like_count = int(video["statistics"].get("likeCount", 0))
 
-    if not comments:
-        return jsonify({"error": "No comments found"}), 404
+        # --- Komentar ---
+        comments = []
+        response = youtube.commentThreads().list(
+            part="snippet",
+            videoId=video_id,
+            maxResults=50,
+            textFormat="plainText"
+        ).execute()
 
-    pos, neg, neu = 0, 0, 0
-    for c in comments:
-        polarity = TextBlob(c).sentiment.polarity
-        if polarity > 0.1:
-            pos += 1
-        elif polarity < -0.1:
-            neg += 1
-        else:
-            neu += 1
+        for item in response["items"]:
+            snippet = item["snippet"]["topLevelComment"]["snippet"]
+            text = snippet["textDisplay"]
+            likes = snippet["likeCount"]
+            time = snippet["publishedAt"]
 
-    total = len(comments)
-    hasil = {
-        "positive": round(pos / total * 100, 2),
-        "negative": round(neg / total * 100, 2),
-        "neutral": round(neu / total * 100, 2),
-        "total_comments": total,
-        "top_comment": max(comments, key=lambda c: TextBlob(c).sentiment.polarity),
-        "worst_comment": min(comments, key=lambda c: TextBlob(c).sentiment.polarity),
-        "comments": comments
-    }
+            polarity = TextBlob(text).sentiment.polarity
+            sentiment = "positive" if polarity > 0.1 else "negative" if polarity < -0.1 else "neutral"
 
-    # Simpan hasil analisis di sesi sementara (opsional)
-    app.config["LAST_RESULT"] = hasil
+            try:
+                emotion_pred = emotion_model(text[:512])
+                top_emotion = max(emotion_pred, key=lambda x: x['score'])['label']
+            except:
+                top_emotion = "unknown"
 
-    return jsonify(hasil)
+            comments.append({
+                "text": text,
+                "likes": likes,
+                "time": time,
+                "sentiment": sentiment,
+                "emotion": top_emotion
+            })
 
+        total_comments = len(comments)
+
+        sentiment_count = {"positive": 0, "negative": 0, "neutral": 0}
+        emotion_count = {}
+
+        for c in comments:
+            sentiment_count[c["sentiment"]] += 1
+            emotion_count[c["emotion"]] = emotion_count.get(c["emotion"], 0) + 1
+
+        sentiment_percent = {k: round(v / total_comments * 100, 2) for k, v in sentiment_count.items()}
+        emotion_percent = {k: round(v / total_comments * 100, 2) for k, v in sorted(emotion_count.items(), key=lambda x: x[1], reverse=True)}
+
+        # Most positive / negative / liked
+        most_positive = max([c for c in comments if c["sentiment"] == "positive"], key=lambda x: TextBlob(x["text"]).sentiment.polarity, default={"text": "..."})
+        most_negative = min([c for c in comments if c["sentiment"] == "negative"], key=lambda x: TextBlob(x["text"]).sentiment.polarity, default={"text": "..."})
+        most_liked = max(comments, key=lambda x: x["likes"], default={"text": "..."})
+
+        result = {
+            "title": title,
+            "thumbnail": thumbnail,
+            "total_likes": like_count,
+            "total_comments": total_comments,
+            "sentiment_percent": sentiment_percent,
+            "emotion_percent": emotion_percent,
+            "highlights": {
+                "positive": most_positive["text"],
+                "negative": most_negative["text"],
+                "liked": most_liked["text"]
+            },
+            "comments": comments
+        }
+
+        # Simpan hasil ke memori sementara
+        app.config["LAST_RESULT"] = result
+
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# --- Download Excel Report ---
 @app.route('/download-report', methods=['POST'])
 def download_report():
     hasil = app.config.get("LAST_RESULT")
     if not hasil:
         return jsonify({"error": "No data to export"}), 400
 
-    # Buat file Excel dari hasil analisis
     wb = Workbook()
     ws = wb.active
-    ws.title = "Sentiment Report"
+    ws.title = "YTEmotion Report"
 
-    ws.append(["Metric", "Value"])
-    ws.append(["Positive (%)", hasil["positive"]])
-    ws.append(["Negative (%)", hasil["negative"]])
-    ws.append(["Neutral (%)", hasil["neutral"]])
+    ws.append(["Title", hasil["title"]])
+    ws.append(["Total Likes", hasil["total_likes"]])
     ws.append(["Total Comments", hasil["total_comments"]])
     ws.append([])
-    ws.append(["Top Comment", hasil["top_comment"]])
-    ws.append(["Worst Comment", hasil["worst_comment"]])
+    ws.append(["Sentiment", "Percentage"])
+    for k, v in hasil["sentiment_percent"].items():
+        ws.append([k.capitalize(), v])
     ws.append([])
-    ws.append(["All Comments"])
+    ws.append(["Emotion", "Percentage"])
+    for k, v in hasil["emotion_percent"].items():
+        ws.append([k.capitalize(), v])
+    ws.append([])
+    ws.append(["Highlights"])
+    ws.append(["Most Positive", hasil["highlights"]["positive"]])
+    ws.append(["Most Negative", hasil["highlights"]["negative"]])
+    ws.append(["Most Liked", hasil["highlights"]["liked"]])
+    ws.append([])
+    ws.append(["Text", "Likes", "Time", "Sentiment", "Emotion"])
     for c in hasil["comments"]:
-        ws.append([c])
+        ws.append([c["text"], c["likes"], c["time"], c["sentiment"], c["emotion"]])
 
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)
 
-    return send_file(output,
-                     download_name="YTEmotionReport.xlsx",
-                     as_attachment=True,
-                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    return send_file(
+        output,
+        download_name="YTEmotionReport.xlsx",
+        as_attachment=True,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     app.run(debug=True)
