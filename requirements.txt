@@ -2,4 +2,5 @@ Flask==3.0.0
 google-api-python-client==2.111.0
 textblob==0.17.1
 transformers==4.45.1
-torch==2.4.0
+torch==2.2.1
+
