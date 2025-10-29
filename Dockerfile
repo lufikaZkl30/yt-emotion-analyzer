@@ -1,21 +1,27 @@
-# Gunakan Python 3.12 supaya library tokenizers & transformers bisa jalan
+# Gunakan Python 3.12 (kompatibel dengan tokenizers & transformers)
 FROM python:3.12-slim
 
 # Buat folder kerja
 WORKDIR /app
 
-# Salin daftar dependencies
+# Salin daftar dependencies dulu
 COPY requirements.txt .
 
-# Install alat build (biar torch/tokenizers bisa diinstall)
-RUN apt-get update && apt-get install -y build-essential rustc cargo && rm -rf /var/lib/apt/lists/*
+# Install alat build yang dibutuhkan (buat compile library kayak torch)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    rustc \
+    cargo \
+    && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip dan install semua library
-RUN pip install --upgrade pip
+# Upgrade pip + setuptools + wheel (penting biar build cepet & stabil)
+RUN pip install --upgrade pip setuptools wheel
+
+# Install semua library dari requirements.txt
 RUN pip install -r requirements.txt
 
 # Salin semua file project ke container
 COPY . .
 
-# Jalankan app.py sebagai server utamacls
+# Jalankan app.py sebagai server utama
 CMD ["python", "app.py"]
