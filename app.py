@@ -166,6 +166,7 @@ def download_report():
     )
 
 if __name__ == "__main__":
-    from os import getenv
-    app.run(host="0.0.0.0", port=int(getenv("PORT", 5050)))
+    port = int(os.environ.get("PORT", 8080))  #
+    app.run(host="0.0.0.0", port=port)
+
 
