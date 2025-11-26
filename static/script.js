@@ -85,6 +85,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     // ===============================
 
+    // =============== CHART UPDATES ===============
     function updateSentimentChart(sentiment) {
     const ctx = document.getElementById("sentimentChart");
     if (sentimentChart) sentimentChart.destroy();
@@ -120,6 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // Update center text
     const total = (sentiment.positive + sentiment.negative + sentiment.neutral).toFixed(0);
     const center = document.querySelector("#sentimentChart").parentNode.querySelector(".absolute");
     if (center) center.innerHTML = `<span class="text-3xl font-semibold text-white">${total}%</span><p class="text-slate-400 text-sm">Total</p>`;
