@@ -54,7 +54,7 @@ def analyze():
         response = youtube.commentThreads().list(
             part="snippet",
             videoId=video_id,
-            maxResults=100,
+            maxResults=200,
             textFormat="plainText"
         ).execute()
 
