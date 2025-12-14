@@ -54,7 +54,7 @@ def analyze():
         response = youtube.commentThreads().list(
             part="snippet",
             videoId=video_id,
-            maxResults=500,
+            maxResults=100,
             textFormat="plainText"
         ).execute()
 
@@ -119,7 +119,7 @@ def analyze():
         return jsonify(result)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}),
 
 
 # --- Download Excel Report ---
