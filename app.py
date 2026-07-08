@@ -51,35 +51,46 @@ def analyze():
 
         # --- Komentar ---
         comments = []
-        response = youtube.commentThreads().list(
-            part="snippet",
-            videoId=video_id,
-            maxResults=200,
-            textFormat="plainText"
-        ).execute()
+        next_page_token = None
 
-        for item in response["items"]:
-            snippet = item["snippet"]["topLevelComment"]["snippet"]
-            text = snippet["textDisplay"]
-            likes = snippet["likeCount"]
-            time = snippet["publishedAt"]
+        while len(comments) < 500:
+            response = youtube.commentThreads().list(
+                part="snippet",
+                videoId=video_id,
+                maxResults=100,
+                textFormat="plainText",
+                pageToken=next_page_token
+            ).execute()
 
-            polarity = TextBlob(text).sentiment.polarity
-            sentiment = "positive" if polarity > 0.1 else "negative" if polarity < -0.1 else "neutral"
+            for item in response["items"]:
+                snippet = item["snippet"]["topLevelComment"]["snippet"]
+                text = snippet["textDisplay"]
+                likes = snippet["likeCount"]
+                time = snippet["publishedAt"]
 
-            try:
-                emotion_pred = emotion_model(text[:512])
-                top_emotion = max(emotion_pred, key=lambda x: x['score'])['label']
-            except:
-                top_emotion = "unknown"
+                polarity = TextBlob(text).sentiment.polarity
+                sentiment = "positive" if polarity > 0.1 else "negative" if polarity < -0.1 else "neutral"
 
-            comments.append({
-                "text": text,
-                "likes": likes,
-                "time": time,
-                "sentiment": sentiment,
-                "emotion": top_emotion
-            })
+                try:
+                    emotion_pred = emotion_model(text[:512])
+                    top_emotion = max(emotion_pred, key=lambda x: x['score'])['label']
+                except:
+                    top_emotion = "unknown"
+
+                comments.append({
+                    "text": text,
+                    "likes": likes,
+                    "time": time,
+                    "sentiment": sentiment,
+                    "emotion": top_emotion
+                })
+                
+                if len(comments) >= 500:
+                    break
+            
+            next_page_token = response.get("nextPageToken")
+            if not next_page_token:
+                break
 
         total_comments = len(comments)
 
@@ -167,6 +178,6 @@ def download_report():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))  #
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=False)
 
 

@@ -210,11 +210,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         filtered.forEach(c => {
             const row = document.createElement("tr");
+            const badgeClass = c.sentiment === 'positive' ? 'badge-positive' : c.sentiment === 'negative' ? 'badge-negative' : 'badge-neutral';
             row.innerHTML = `
-                <td class="p-4 text-slate-800 dark:text-slate-200">${c.text}</td>
-                <td class="p-4 capitalize text-slate-600 dark:text-slate-400">${c.sentiment}</td>
-                <td class="p-4">${c.likes}</td>
-                <td class="p-4 text-slate-500 text-sm">${new Date(c.time).toLocaleString()}</td>
+                <td class="p-3 text-slate-300 text-sm leading-relaxed max-w-xs">${c.text}</td>
+                <td class="p-3"><span class="sentiment-badge ${badgeClass}">${c.sentiment}</span></td>
+                <td class="p-3 text-slate-400 text-sm font-medium">${c.likes}</td>
+                <td class="p-3 text-slate-500 text-xs">${new Date(c.time).toLocaleString()}</td>
             `;
             commentsTableBody.appendChild(row);
         });
