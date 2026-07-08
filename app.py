@@ -30,7 +30,12 @@ def index():
 @app.route('/analyze', methods=['POST'])
 def analyze():
     data = request.get_json()
-    youtube_url = data.get('youtube_url')
+    if not data:
+        return jsonify({"error": "Request body is missing or not valid JSON"}), 400
+
+    youtube_url = data.get('youtube_url', '').strip()
+    if not youtube_url:
+        return jsonify({"error": "YouTube URL cannot be empty"}), 400
 
     video_id = extract_video_id(youtube_url)
     if not video_id:
@@ -93,6 +98,8 @@ def analyze():
                 break
 
         total_comments = len(comments)
+        if total_comments == 0:
+            return jsonify({"error": "No comments found for this video."}), 404
 
         sentiment_count = {"positive": 0, "negative": 0, "neutral": 0}
         emotion_count = {}
@@ -130,7 +137,7 @@ def analyze():
         return jsonify(result)
 
     except Exception as e:
-        return jsonify({"error": str(e)}),
+        return jsonify({"error": str(e)}), 500
 
 
 # --- Download Excel Report ---
