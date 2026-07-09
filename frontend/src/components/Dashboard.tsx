@@ -9,7 +9,7 @@ import {
   BarElement,
 } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
-import { AnalysisResult, Comment } from '../types';
+import type { AnalysisResult } from '../types';
 import CommentFeed from './CommentFeed';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);

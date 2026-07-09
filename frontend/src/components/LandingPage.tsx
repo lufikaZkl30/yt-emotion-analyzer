@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { AnalysisResult } from '../types';
+import type { AnalysisResult } from '../types';
 
 interface LandingPageProps {
   onResult: (data: AnalysisResult) => void;

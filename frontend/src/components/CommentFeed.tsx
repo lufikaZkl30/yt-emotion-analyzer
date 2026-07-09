@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
-import { Comment } from '../types';
+import type { YTComment } from '../types';
 
 interface CommentFeedProps {
-  comments: Comment[];
+  comments: YTComment[];
 }
 
 export default function CommentFeed({ comments }: CommentFeedProps) {
