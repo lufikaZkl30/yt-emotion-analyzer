@@ -188,12 +188,13 @@ export default function Dashboard({ data, onBack }: DashboardProps) {
 
                 {/* POSITIVE */}
                 <div className="highlight-positive p-4">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                     <svg style={{ width: '1rem', height: '1rem', color: '#34d399' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21H7a2 2 0 01-2-2V9a2 2 0 012-2h4" />
                     </svg>
                     <h5 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Most Positive</h5>
                   </div>
+                  <p style={{ fontSize: '0.7rem', color: '#475569', marginBottom: '0.5rem' }}>Komentar dengan skor sentimen positif paling tinggi dari seluruh komentar yang dianalisis.</p>
                   <p style={{ fontSize: '0.875rem', color: '#94a3b8', fontStyle: 'italic', lineHeight: 1.6 }}>
                     "{data.highlights.positive}"
                   </p>
@@ -201,12 +202,13 @@ export default function Dashboard({ data, onBack }: DashboardProps) {
 
                 {/* NEGATIVE */}
                 <div className="highlight-negative p-4">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                     <svg style={{ width: '1rem', height: '1rem', color: '#f87171' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.737 3H17a2 2 0 012 2v8a2 2 0 01-2 2h-4" />
                     </svg>
                     <h5 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#f87171', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Most Negative</h5>
                   </div>
+                  <p style={{ fontSize: '0.7rem', color: '#475569', marginBottom: '0.5rem' }}>Komentar dengan skor sentimen negatif paling tinggi — menggambarkan kritik atau ketidakpuasan penonton.</p>
                   <p style={{ fontSize: '0.875rem', color: '#94a3b8', fontStyle: 'italic', lineHeight: 1.6 }}>
                     "{data.highlights.negative}"
                   </p>
@@ -214,12 +216,13 @@ export default function Dashboard({ data, onBack }: DashboardProps) {
 
                 {/* LIKED */}
                 <div className="highlight-liked p-4">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                     <svg style={{ width: '1rem', height: '1rem', color: '#60a5fa' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
                     <h5 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Most Liked</h5>
                   </div>
+                  <p style={{ fontSize: '0.7rem', color: '#475569', marginBottom: '0.5rem' }}>Komentar yang mendapat jumlah likes terbanyak dari penonton lain di kolom komentar.</p>
                   <p style={{ fontSize: '0.875rem', color: '#94a3b8', fontStyle: 'italic', lineHeight: 1.6 }}>
                     "{data.highlights.liked}"
                   </p>
