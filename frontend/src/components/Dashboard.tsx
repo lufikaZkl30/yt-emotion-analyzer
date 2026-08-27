@@ -258,6 +258,32 @@ export default function Dashboard({ data, onBack }: DashboardProps) {
                 <div style={{ flex: 1, minHeight: '220px' }}>
                   <Bar data={emotionData} options={emotionOptions} />
                 </div>
+
+                {/* Emotion Descriptions */}
+                <div style={{ marginTop: '1.25rem', borderTop: '1px solid rgba(148,163,184,0.1)', paddingTop: '1rem' }}>
+                  <p style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.75rem' }}>
+                    📘 Emotion Guide
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem 1rem' }}>
+                    {[
+                      { emoji: '😡', label: 'Anger', color: '#F87171', desc: 'Komentar yang mengekspresikan kemarahan, frustrasi, atau ketidakpuasan yang kuat.' },
+                      { emoji: '😨', label: 'Fear', color: '#A78BFA', desc: 'Komentar yang menunjukkan rasa takut, khawatir, atau cemas terhadap konten.' },
+                      { emoji: '😄', label: 'Joy', color: '#FBBF24', desc: 'Komentar yang mencerminkan kesenangan, kebahagiaan, atau antusias yang tinggi.' },
+                      { emoji: '😢', label: 'Sadness', color: '#60A5FA', desc: 'Komentar yang mengungkapkan kesedihan, kekecewaan, atau perasaan kehilangan.' },
+                      { emoji: '🤢', label: 'Disgust', color: '#34D399', desc: 'Komentar yang mengekspresikan rasa jijik atau penolakan terhadap sesuatu.' },
+                      { emoji: '😲', label: 'Surprise', color: '#38BDF8', desc: 'Komentar yang mencerminkan rasa terkejut atau kagum terhadap isi video.' },
+                      { emoji: '😐', label: 'Neutral', color: '#9CA3AF', desc: 'Komentar yang bersifat informatif atau deskriptif tanpa emosi yang dominan.' },
+                    ].map(({ emoji, label, color, desc }) => (
+                      <div key={label} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                        <span style={{ fontSize: '1rem', lineHeight: 1.3 }}>{emoji}</span>
+                        <div>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color, display: 'block', marginBottom: '1px' }}>{label}</span>
+                          <span style={{ fontSize: '0.65rem', color: '#475569', lineHeight: 1.4 }}>{desc}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
