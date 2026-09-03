@@ -1,130 +1,180 @@
 import { useState, useMemo } from 'react';
 import type { YTComment } from '../types';
 
-interface CommentFeedProps {
-  comments: YTComment[];
+interface CommentFeedProps { comments: YTComment[]; }
+
+const EMOTION_COLOR: Record<string, string> = {
+  anger: '#F87171', fear: '#A78BFA', joy: '#FBBF24',
+  sadness: '#60A5FA', disgust: '#34D399', surprise: '#38BDF8', neutral: '#94A3B8',
+};
+const EMOTION_EMOJI: Record<string, string> = {
+  anger: '😡', fear: '😨', joy: '😄', sadness: '😢', disgust: '🤢', surprise: '😲', neutral: '😐',
+};
+
+function emotionColor(e: string) { return EMOTION_COLOR[e.toLowerCase()] ?? '#94A3B8'; }
+function emotionEmoji(e: string) { return EMOTION_EMOJI[e.toLowerCase()] ?? '💬'; }
+
+function initials(i: number) {
+  const pool = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  return pool[i % pool.length] + pool[(i * 7 + 3) % pool.length];
 }
+
+const GRAD_POOLS = [
+  'linear-gradient(135deg,#10B981,#22D3EE)',
+  'linear-gradient(135deg,#22D3EE,#8B5CF6)',
+  'linear-gradient(135deg,#F59E0B,#F43F5E)',
+  'linear-gradient(135deg,#8B5CF6,#22D3EE)',
+  'linear-gradient(135deg,#38BDF8,#475569)',
+  'linear-gradient(135deg,#10B981,#6366F1)',
+];
 
 export default function CommentFeed({ comments }: CommentFeedProps) {
   const [search, setSearch] = useState('');
-  const [sentimentFilter, setSentimentFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
-  const [sortOrder, setSortOrder] = useState<'default' | 'likes' | 'newest' | 'oldest'>('default');
+  const [sentFilter, setSentFilter] = useState<'all'|'positive'|'negative'|'neutral'>('all');
+  const [sortOrder, setSortOrder] = useState<'default'|'likes'>('default');
 
   const filtered = useMemo(() => {
-    let result = [...comments];
+    let r = [...comments];
+    if (sentFilter !== 'all') r = r.filter(c => c.sentiment === sentFilter);
+    if (search.trim()) r = r.filter(c => c.text.toLowerCase().includes(search.toLowerCase()));
+    if (sortOrder === 'likes') r.sort((a, b) => b.likes - a.likes);
+    return r;
+  }, [comments, sentFilter, search, sortOrder]);
 
-    // Filter by sentiment
-    if (sentimentFilter !== 'all') {
-      result = result.filter(c => c.sentiment === sentimentFilter);
-    }
+  const counts = useMemo(() => ({
+    all: comments.length,
+    positive: comments.filter(c => c.sentiment === 'positive').length,
+    negative: comments.filter(c => c.sentiment === 'negative').length,
+    neutral:  comments.filter(c => c.sentiment === 'neutral').length,
+  }), [comments]);
 
-    // Filter by search text
-    if (search.trim()) {
-      result = result.filter(c => c.text.toLowerCase().includes(search.toLowerCase()));
-    }
+  const topSix = filtered.slice(0, 6);
 
-    // Sort
-    if (sortOrder === 'likes') {
-      result.sort((a, b) => b.likes - a.likes);
-    } else if (sortOrder === 'newest') {
-      result.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
-    } else if (sortOrder === 'oldest') {
-      result.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
-    }
-
-    return result;
-  }, [comments, search, sentimentFilter, sortOrder]);
-
-  const getBadgeClass = (sentiment: string) => {
-    if (sentiment === 'positive') return 'sentiment-badge badge-positive';
-    if (sentiment === 'negative') return 'sentiment-badge badge-negative';
-    return 'sentiment-badge badge-neutral';
+  const sentMeta = (s: string) => {
+    if (s === 'positive') return { color: '#10B981', border: 'rgba(16,185,129,0.35)', bg: 'rgba(16,185,129,0.08)', label: 'JOY' };
+    if (s === 'negative') return { color: '#F43F5E', border: 'rgba(244,63,94,0.35)', bg: 'rgba(244,63,94,0.08)', label: 'FRICTION' };
+    return { color: '#38BDF8', border: 'rgba(56,189,248,0.35)', bg: 'rgba(56,189,248,0.08)', label: 'NEUTRAL' };
   };
 
   return (
-    <div className="card p-5">
-      <p style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>
-        Comment Feed
-      </p>
-      <p style={{ fontSize: '0.875rem', color: '#475569', marginBottom: '1rem' }}>
-        Live comments with sentiment analysis
-      </p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-      {/* Filter & Sort Controls */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', gap: '0.75rem' }}>
-        <input
-          id="commentSearch"
-          type="text"
-          placeholder="Search comments..."
-          className="comment-search"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ flexGrow: 1, minWidth: '180px' }}
-        />
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <select
-            id="sentimentFilter"
-            className="sentiment-filter"
-            value={sentimentFilter}
-            onChange={e => setSentimentFilter(e.target.value as typeof sentimentFilter)}
-          >
-            <option value="all">All Sentiments</option>
-            <option value="positive">Positive</option>
-            <option value="negative">Negative</option>
-            <option value="neutral">Neutral</option>
-          </select>
-          <select
-            id="sortOrder"
-            className="sort-order"
-            value={sortOrder}
-            onChange={e => setSortOrder(e.target.value as typeof sortOrder)}
-          >
-            <option value="default">Default</option>
-            <option value="likes">Most Liked</option>
-            <option value="newest">Newest</option>
-            <option value="oldest">Oldest</option>
-          </select>
+      {/* ── AUDIENCE VOICE SPECTRUM (card grid) ── */}
+      <div style={{ padding: '1.5rem', background: 'rgba(8,11,26,0.5)', border: '1px solid var(--cyber-border)' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', borderBottom: '1px solid rgba(30,41,88,0.6)', paddingBottom: '1rem', marginBottom: '1.25rem' }}>
+          <div>
+            <div className="mono" style={{ fontSize: '0.5625rem', color: '#22D3EE', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '2px' }}>[ RAW NEURAL STREAMS ]</div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff' }}>Audience Voice Spectrum</h2>
+            <p className="mono" style={{ fontSize: '0.5625rem', color: '#475569', marginTop: '2px' }}>Verbatim comments categorized with real-time sentiment tokens</p>
+          </div>
+          {/* Filter tabs */}
+          <div style={{ display: 'flex', gap: '4px', padding: '5px', background: 'var(--cyber-void)', border: '1px solid var(--cyber-border)', borderRadius: '4px' }}>
+            {(['all','positive','neutral','negative'] as const).map(f => (
+              <button key={f} className={`filter-tab ${sentFilter === f ? 'active' : ''}`} onClick={() => setSentFilter(f)}>
+                {f.toUpperCase()} ({counts[f === 'neutral' ? 'neutral' : f === 'negative' ? 'negative' : f === 'positive' ? 'positive' : 'all'].toLocaleString()})
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Comment Cards Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+          {topSix.length === 0 ? (
+            <div className="mono" style={{ gridColumn: '1/-1', padding: '2rem', textAlign: 'center', color: '#334155', fontSize: '0.75rem' }}>NO COMMENTS MATCHING FILTER</div>
+          ) : topSix.map((c, i) => {
+            const sm = sentMeta(c.sentiment);
+            const ec = emotionColor(c.emotion);
+            return (
+              <div key={i} className={`comment-card chamfer-sm ${c.sentiment === 'positive' ? 'pos' : c.sentiment === 'negative' ? 'neg' : 'neu'}`} style={{ borderColor: sm.border }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div className="avatar" style={{ background: GRAD_POOLS[i % GRAD_POOLS.length] }}>{initials(i)}</div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f1f5f9' }} className="mono">@user_{(1000 + i * 13).toString(16)}</div>
+                      <div className="mono" style={{ fontSize: '0.5625rem', color: '#475569' }}>{new Date(c.time).toLocaleDateString()}</div>
+                    </div>
+                  </div>
+                  <span style={{ padding: '3px 8px', background: sm.bg, border: `1px solid ${sm.border}`, borderRadius: '3px', fontSize: '0.5625rem', color: sm.color }} className="mono">
+                    {emotionEmoji(c.emotion)} {sm.label}
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.75rem', color: '#cbd5e1', lineHeight: 1.65, fontWeight: 300 }}>"{c.text}"</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid rgba(30,41,88,0.5)' }}>
+                  <span className="mono" style={{ fontSize: '0.5625rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ color: '#F43F5E' }}>♥</span> {c.likes} Likes
+                  </span>
+                  <span className="mono" style={{ fontSize: '0.5625rem', color: ec, textTransform: 'capitalize' }}>#{c.emotion}</span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Comment Table */}
-      <div className="custom-scrollbar" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '24rem', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.05)' }}>
-        <table style={{ width: '100%', minWidth: '600px', textAlign: 'left' }}>
-          <thead>
-            <tr>
-              <th style={{ padding: '12px 16px' }}>Comment</th>
-              <th style={{ padding: '12px 16px' }}>Sentiment</th>
-              <th style={{ padding: '12px 16px' }}>Likes</th>
-              <th style={{ padding: '12px 16px' }}>Time</th>
-            </tr>
-          </thead>
-          <tbody id="commentsTableBody">
-            {filtered.length === 0 ? (
+      {/* ── FULL COMMENT TABLE ── */}
+      <div style={{ padding: '1.25rem', background: 'var(--cyber-card)', border: '1px solid var(--cyber-border)' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+          <div>
+            <div className="mono" style={{ fontSize: '0.5625rem', color: '#22D3EE', letterSpacing: '0.1em', marginBottom: '2px' }}>[ CACHED NEURAL LOGS // FULL FEED ]</div>
+            <p className="mono" style={{ fontSize: '0.6875rem', color: '#475569' }}>{filtered.length.toLocaleString()} ENTRIES</p>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <input
+              id="commentSearch"
+              type="text"
+              placeholder="SEARCH COMMENTS..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ height: '34px', padding: '0 12px', fontSize: '0.6875rem', borderRadius: '4px', minWidth: '200px' }}
+            />
+            <select
+              id="sortOrder"
+              value={sortOrder}
+              onChange={e => setSortOrder(e.target.value as typeof sortOrder)}
+              style={{ height: '34px', padding: '0 10px', fontSize: '0.6875rem', borderRadius: '4px' }}
+            >
+              <option value="default">DEFAULT ORDER</option>
+              <option value="likes">MOST LIKED</option>
+            </select>
+          </div>
+        </div>
+
+        <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '24rem', border: '1px solid rgba(30,41,88,0.6)', borderRadius: '4px' }} className="custom-scrollbar">
+          <table style={{ width: '100%', minWidth: '640px', textAlign: 'left' }}>
+            <thead>
               <tr>
-                <td colSpan={4} style={{ padding: '24px', textAlign: 'center', color: '#475569', fontSize: '0.875rem' }}>
-                  No comments found.
-                </td>
+                <th style={{ padding: '10px 14px' }}>COMMENT</th>
+                <th style={{ padding: '10px 14px' }}>EMOTION</th>
+                <th style={{ padding: '10px 14px' }}>SENTIMENT</th>
+                <th style={{ padding: '10px 14px' }}>LIKES</th>
+                <th style={{ padding: '10px 14px' }}>TIME</th>
               </tr>
-            ) : (
-              filtered.map((c, i) => (
-                <tr key={i}>
-                  <td style={{ padding: '12px 16px', color: '#cbd5e1', fontSize: '0.875rem', lineHeight: 1.6, maxWidth: '20rem' }}>
-                    {c.text}
-                  </td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <span className={getBadgeClass(c.sentiment)}>{c.sentiment}</span>
-                  </td>
-                  <td style={{ padding: '12px 16px', color: '#94a3b8', fontSize: '0.875rem', fontWeight: 500 }}>
-                    {c.likes}
-                  </td>
-                  <td style={{ padding: '12px 16px', color: '#64748b', fontSize: '0.75rem' }}>
-                    {new Date(c.time).toLocaleString()}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody id="commentsTableBody">
+              {filtered.length === 0 ? (
+                <tr><td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: '#334155' }} className="mono">NO COMMENTS FOUND</td></tr>
+              ) : filtered.map((c, i) => {
+                const ec = emotionColor(c.emotion);
+                const sm = sentMeta(c.sentiment);
+                return (
+                  <tr key={i}>
+                    <td style={{ maxWidth: '22rem', color: '#cbd5e1', lineHeight: 1.55 }}>{c.text}</td>
+                    <td>
+                      <span className="mono" style={{ fontSize: '0.6875rem', color: ec, fontWeight: 600, textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {emotionEmoji(c.emotion)} {c.emotion}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="mono badge" style={{ color: sm.color, background: sm.bg, border: `1px solid ${sm.border}` }}>{c.sentiment}</span>
+                    </td>
+                    <td style={{ color: '#94a3b8' }} className="mono">{c.likes}</td>
+                    <td style={{ color: '#475569', fontSize: '0.6875rem' }} className="mono">{new Date(c.time).toLocaleString()}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
