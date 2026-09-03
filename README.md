@@ -86,6 +86,52 @@ The system also implements a **Binary Search Tree (BST)** in Java to efficiently
 
 ---
 
+## 💻 Getting Started
+
+### Prerequisites
+- Java 8 or higher
+- Node.js 14 or higher
+- npm or yarn
+
+### Installation
+1. Clone the repository
+
+```bash
+git clone https://github.com/lufikaZkl30/yt-emotion-analyzer.git
+cd yt-emotion-analyzer
+```
+
+2. Install dependencies
+
+```bash
+# For backend
+
+./gradlew build
+
+# For frontend
+cd ../frontend
+npm install
+# or
+yarn install
+```
+
+3. Run the application
+
+```bash
+# Start backend
+./gradlew bootRun
+
+# Start 
+python app.py
+
+```
+
+4. Open in browser
+
+Open [http://localhost:1342](http://localhost:1342) to view the application
+
+---
+
 ## 👤 Author
 **lufikaZkl30** ✨  
 

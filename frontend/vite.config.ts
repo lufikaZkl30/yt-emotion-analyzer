@@ -6,8 +6,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/analyze': 'http://localhost:8080',
-      '/download-report': 'http://localhost:8080',
+      '/analyze': 'http://localhost:1342',
+      '/download-report': 'http://localhost:1342',
     }
   }
 })

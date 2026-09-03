@@ -502,3 +502,134 @@ tbody tr td {
 @media (max-width: 640px) {
     .stat-number { font-size: 1.75rem; }
 }
+
+/* ============ INTELLIGENCE DASHBOARD LAYOUT ============ */
+.db-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    border-radius: var(--radius-md) !important;
+}
+
+.db-stat-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 14px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(99,102,241,0.12);
+    gap: 1px;
+}
+
+.db-chip-label {
+    font-size: 0.5875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+}
+
+.db-chip-value {
+    font-size: 0.9375rem;
+    font-weight: 800;
+    color: #f1f5f9;
+}
+
+.db-kpi-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 900px) {
+    .db-kpi-row { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 600px) {
+    .db-kpi-row { grid-template-columns: 1fr; }
+}
+
+.db-kpi-card {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
+.db-kpi-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+}
+
+.db-kpi-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 8px currentColor;
+}
+
+.db-kpi-big {
+    font-size: 2.5rem;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.03em;
+}
+
+.db-kpi-desc {
+    font-size: 0.75rem;
+    color: #475569;
+    line-height: 1.55;
+    flex: 1;
+}
+
+.db-progress-bar {
+    height: 5px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 99px;
+    overflow: hidden;
+    display: flex;
+}
+
+.db-row2 {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 1024px) {
+    .db-row2 { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 640px) {
+    .db-row2 { grid-template-columns: 1fr; }
+}
+
+.db-row3 {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .db-row3 { grid-template-columns: 1fr; }
+}
+
+.db-section-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #64748b;
+    margin-bottom: 2px;
+}
+

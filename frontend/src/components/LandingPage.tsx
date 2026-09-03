@@ -27,18 +27,27 @@ export default function LandingPage({ onResult }: LandingPageProps) {
         body: JSON.stringify({ youtube_url: url }),
       });
 
-      const data = await response.json();
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(`Server returned non-JSON response. Is the backend running?`);
+      }
+
       setLoading(false);
 
       if (!response.ok) {
-        setError(data.error || 'Unknown error');
+        setError(data?.error || 'Unknown error');
         return;
       }
 
       onResult(data);
+      
     } catch (err: unknown) {
       setLoading(false);
-      setError(err instanceof Error ? err.message : 'Network error');
+      setError(err instanceof Error ? err.message : 'Network error. Make sure the backend server is running.');
     }
   };
 

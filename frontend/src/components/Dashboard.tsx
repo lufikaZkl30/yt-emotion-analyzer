@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo, useState } from 'react';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -10,7 +10,6 @@ import {
 } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import type { AnalysisResult } from '../types';
-import CommentFeed from './CommentFeed';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
@@ -19,10 +18,25 @@ interface DashboardProps {
   onBack: () => void;
 }
 
+const EMOTION_META: Record<string, { emoji: string; color: string; desc: string }> = {
+  anger:    { emoji: '😡', color: '#F87171', desc: 'Frustration & strong displeasure' },
+  fear:     { emoji: '😨', color: '#A78BFA', desc: 'Worry, anxiety & concern' },
+  joy:      { emoji: '😄', color: '#FBBF24', desc: 'Happiness, excitement & delight' },
+  sadness:  { emoji: '😢', color: '#60A5FA', desc: 'Disappointment & sorrow' },
+  disgust:  { emoji: '🤢', color: '#34D399', desc: 'Rejection & strong dislike' },
+  surprise: { emoji: '😲', color: '#38BDF8', desc: 'Amazement & shock' },
+  neutral:  { emoji: '😐', color: '#9CA3AF', desc: 'Informational & balanced' },
+};
+
+function getMeta(key: string) {
+  return EMOTION_META[key.toLowerCase()] ?? { emoji: '💬', color: '#9CA3AF', desc: '' };
+}
+
 export default function Dashboard({ data, onBack }: DashboardProps) {
   const dashRef = useRef<HTMLDivElement>(null);
+  const [search, setSearch] = useState('');
+  const [sentFilter, setSentFilter] = useState<'all'|'positive'|'negative'|'neutral'>('all');
 
-  // Trigger animation after mount
   useEffect(() => {
     const el = dashRef.current;
     if (!el) return;
@@ -30,282 +44,400 @@ export default function Dashboard({ data, onBack }: DashboardProps) {
     return () => clearTimeout(t);
   }, []);
 
-  // Download report
   const handleDownload = async () => {
     try {
       const res = await fetch('/download-report', { method: 'POST' });
-      if (!res.ok) throw new Error('Download failed');
+      if (!res.ok) throw new Error('Failed');
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = 'YTEmotionReport.xlsx';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      a.href = url; a.download = 'YTEmotionReport.xlsx';
+      document.body.appendChild(a); a.click(); a.remove();
       window.URL.revokeObjectURL(url);
-    } catch {
-      alert('Failed to download report!');
-    }
+    } catch { alert('Failed to download report!'); }
   };
 
-  // Sentiment chart data
-  const sentimentData = {
+  const dominantEmotion = useMemo(() => {
+    const entries = Object.entries(data.emotion_percent);
+    if (!entries.length) return null;
+    const [key, val] = entries.reduce((a, b) => b[1] > a[1] ? b : a);
+    return { key, val, ...getMeta(key) };
+  }, [data.emotion_percent]);
+
+  const sentimentScore = useMemo(() => {
+    return (data.sentiment_percent.positive - data.sentiment_percent.negative).toFixed(1);
+  }, [data.sentiment_percent]);
+
+  const filteredComments = useMemo(() => {
+    let r = [...data.comments];
+    if (sentFilter !== 'all') r = r.filter(c => c.sentiment === sentFilter);
+    if (search.trim()) r = r.filter(c => c.text.toLowerCase().includes(search.toLowerCase()));
+    return r;
+  }, [data.comments, sentFilter, search]);
+
+  const emotionEntries = Object.entries(data.emotion_percent).sort((a, b) => b[1] - a[1]);
+
+  const doughnutData = {
     labels: ['Positive', 'Negative', 'Neutral'],
     datasets: [{
       data: [data.sentiment_percent.positive, data.sentiment_percent.negative, data.sentiment_percent.neutral],
       backgroundColor: ['#10B981', '#EF4444', '#9CA3AF'],
-      borderColor: '#0f172a',
-      borderWidth: 2,
-      hoverOffset: 10,
+      borderColor: '#050816', borderWidth: 3, hoverOffset: 8,
     }],
   };
 
-  const sentimentOptions = {
-    cutout: '75%' as const,
+  const doughnutOpts = {
+    cutout: '78%',
     plugins: {
-      legend: {
-        position: 'bottom' as const,
-        labels: { color: '#cbd5e1', font: { size: 13, weight: 500 as const } },
-      },
-      tooltip: {
-        callbacks: {
-          label: (ctx: { label: string; parsed: number }) => `${ctx.label}: ${ctx.parsed}%`,
-        },
-      },
+      legend: { position: 'bottom' as const, labels: { color: '#94a3b8', font: { size: 12, weight: 500 as const }, padding: 16 } },
+      tooltip: { callbacks: { label: (c: { label: string; parsed: number }) => `${c.label}: ${c.parsed}%` } },
     },
   };
 
-  const sentimentTotal = (
-    data.sentiment_percent.positive +
-    data.sentiment_percent.negative +
-    data.sentiment_percent.neutral
-  ).toFixed(0);
-
-  // Emotion chart data
-  const emotionLabels = Object.keys(data.emotion_percent);
-  const emotionValues = Object.values(data.emotion_percent);
-
-  const emotionData = {
-    labels: emotionLabels,
+  const barData = {
+    labels: emotionEntries.map(([k]) => k.charAt(0).toUpperCase() + k.slice(1)),
     datasets: [{
-      label: 'Emotion %',
-      data: emotionValues,
-      backgroundColor: ['#60A5FA', '#34D399', '#F472B6', '#FBBF24', '#A78BFA', '#F87171', '#38BDF8'],
-      borderRadius: 6,
+      label: '%',
+      data: emotionEntries.map(([, v]) => v),
+      backgroundColor: emotionEntries.map(([k]) => getMeta(k).color + 'cc'),
+      borderRadius: 6, borderSkipped: false,
     }],
   };
 
-  const emotionOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: { callbacks: { label: (ctx: { parsed: { y: number } }) => `${ctx.parsed.y}%` } },
-    },
+  const barOpts = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c: { parsed: { y: number } }) => `${c.parsed.y}%` } } },
     scales: {
-      x: {
-        ticks: { color: '#cbd5e1', font: { size: 12 } },
-        grid: { display: false },
-      },
-      y: {
-        ticks: { color: '#64748b', font: { size: 12 }, stepSize: 20 },
-        grid: { color: 'rgba(148,163,184,0.1)' },
-        beginAtZero: true,
-      },
+      x: { ticks: { color: '#94a3b8', font: { size: 11 } }, grid: { display: false } },
+      y: { ticks: { color: '#64748b', font: { size: 11 } }, grid: { color: 'rgba(148,163,184,0.08)' }, beginAtZero: true },
     },
   };
 
   return (
-    <div
-      ref={dashRef}
-      className="dashboard-page main-background min-h-screen p-4 md:p-8"
-    >
-      <div style={{ maxWidth: '96rem', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative', zIndex: 10 }}>
+    <div ref={dashRef} className="dashboard-page main-background" style={{ minHeight: '100vh', padding: '1.5rem' }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'relative', zIndex: 10 }}>
 
-        {/* ===== HEADER ===== */}
-        <header style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', paddingBottom: '0.5rem' }}>
+        {/* ── HEADER ── */}
+        <header className="db-header card" style={{ padding: '1rem 1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <button id="backButton" onClick={onBack} title="Back to Home" style={{ padding: '0.5rem' }}>
-              <svg style={{ width: '1.25rem', height: '1.25rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button id="backButton" onClick={onBack} title="Back" style={{ padding: '6px' }}>
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
             </button>
-            <div>
-              <h1 style={{ fontSize: '1.375rem', fontWeight: 700, color: '#f1f5f9' }}>Analysis Dashboard</h1>
-              <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>YouTube Comment Emotion Insights</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+              <img
+                src={data.thumbnail} alt="thumb"
+                style={{ width: '48px', height: '34px', objectFit: 'cover', borderRadius: '6px', border: '1px solid rgba(99,102,241,0.2)' }}
+                onError={e => { (e.target as HTMLImageElement).src = 'https://placehold.co/48x34/0a0f1e/1e293b?text=YT'; }}
+              />
+              <div>
+                <p style={{ fontSize: '0.6875rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  Live Intelligence Dashboard
+                </p>
+                <h1 style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#f1f5f9', lineHeight: 1.3, maxWidth: '480px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {data.title}
+                </h1>
+              </div>
             </div>
           </div>
-
-          <button id="downloadReportBtn" onClick={handleDownload}>
-            <svg style={{ width: '1rem', height: '1rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Download Report
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div className="db-stat-chip">
+              <span className="db-chip-label">Comments</span>
+              <span className="db-chip-value">{data.total_comments.toLocaleString()}</span>
+            </div>
+            <div className="db-stat-chip">
+              <span className="db-chip-label">Likes</span>
+              <span className="db-chip-value">{data.total_likes.toLocaleString()}</span>
+            </div>
+            <div className="db-stat-chip" style={{ borderColor: Number(sentimentScore) >= 0 ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)' }}>
+              <span className="db-chip-label">Net Sentiment</span>
+              <span className="db-chip-value" style={{ color: Number(sentimentScore) >= 0 ? '#34d399' : '#f87171' }}>
+                {Number(sentimentScore) >= 0 ? '+' : ''}{sentimentScore}%
+              </span>
+            </div>
+            <button id="downloadReportBtn" onClick={handleDownload}>
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Export
+            </button>
+          </div>
         </header>
 
-        {/* ===== MAIN GRID ===== */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1, 1fr)', gap: '1.5rem' }} className="dashboard-grid">
+        {/* ── ROW 1: KPI METRICS ── */}
+        <div className="db-kpi-row">
 
-          {/* ========== LEFT COLUMN ========== */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-            {/* VIDEO DETAILS */}
-            <div className="card p-5">
-              <p style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>
-                Video Details
-              </p>
-              <img
-                className="video-thumbnail"
-                src={data.thumbnail}
-                alt="Video Thumbnail"
-                onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/600x400/0a0f1e/1e293b?text=Error'; }}
-              />
-              <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#e2e8f0', lineHeight: 1.4 }}>
-                {data.title}
-              </h4>
+          {/* Positive Activity */}
+          <div className="card db-kpi-card">
+            <div className="db-kpi-label">
+              <span className="db-kpi-dot" style={{ background: '#34d399' }} />
+              Positive Activity
             </div>
+            <div className="db-kpi-big" style={{ color: '#34d399' }}>
+              {data.sentiment_percent.positive.toFixed(1)}%
+            </div>
+            <p className="db-kpi-desc">
+              Audience expressing support, excitement, and appreciation in their comments.
+            </p>
+            <div className="db-progress-bar">
+              <div style={{ width: `${data.sentiment_percent.positive}%`, background: 'linear-gradient(90deg,#10b981,#34d399)', borderRadius: '99px', height: '100%', transition: 'width 1s cubic-bezier(.16,1,.3,1)' }} />
+            </div>
+          </div>
 
-            {/* TOTAL STATS */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div className="card p-5" style={{ textAlign: 'center' }}>
-                <p style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500, marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Comments</p>
-                <h3 className="stat-number">{data.total_comments.toLocaleString()}</h3>
+          {/* Negative / Neutral */}
+          <div className="card db-kpi-card">
+            <div className="db-kpi-label">
+              <span className="db-kpi-dot" style={{ background: '#f87171' }} />
+              Negative / Neutral
+            </div>
+            <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'baseline' }}>
+              <div>
+                <div className="db-kpi-big" style={{ color: '#f87171', fontSize: '2rem' }}>
+                  {data.sentiment_percent.negative.toFixed(1)}%
+                </div>
+                <p style={{ fontSize: '0.6875rem', color: '#64748b' }}>Negative</p>
               </div>
-              <div className="card p-5" style={{ textAlign: 'center' }}>
-                <p style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500, marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Likes</p>
-                <h3 className="stat-number">{data.total_likes.toLocaleString()}</h3>
+              <div>
+                <div className="db-kpi-big" style={{ color: '#94a3b8', fontSize: '2rem' }}>
+                  {data.sentiment_percent.neutral.toFixed(1)}%
+                </div>
+                <p style={{ fontSize: '0.6875rem', color: '#64748b' }}>Neutral</p>
               </div>
             </div>
+            <p className="db-kpi-desc">Criticism, disputes, and informational commentary.</p>
+            <div className="db-progress-bar">
+              <div style={{ width: `${data.sentiment_percent.negative}%`, background: 'linear-gradient(90deg,#ef4444,#f87171)', borderRadius: '99px 0 0 99px', height: '100%' }} />
+              <div style={{ width: `${data.sentiment_percent.neutral}%`, background: 'rgba(148,163,184,0.4)', height: '100%' }} />
+            </div>
+          </div>
 
-            {/* COMMENT HIGHLIGHTS */}
-            <div className="card p-5">
-              <p style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>
-                Comment Highlights
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-
-                {/* POSITIVE */}
-                <div className="highlight-positive p-4">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    <svg style={{ width: '1rem', height: '1rem', color: '#34d399' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21H7a2 2 0 01-2-2V9a2 2 0 012-2h4" />
-                    </svg>
-                    <h5 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Most Positive</h5>
+          {/* Dominant Emotion */}
+          {dominantEmotion && (
+            <div className="card db-kpi-card">
+              <div className="db-kpi-label">
+                <span className="db-kpi-dot" style={{ background: dominantEmotion.color }} />
+                Dominant Emotion
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span style={{ fontSize: '2.5rem', lineHeight: 1 }}>{dominantEmotion.emoji}</span>
+                <div>
+                  <div className="db-kpi-big" style={{ color: dominantEmotion.color, fontSize: '1.75rem', textTransform: 'capitalize' }}>
+                    {dominantEmotion.key}
                   </div>
-                  <p style={{ fontSize: '0.7rem', color: '#475569', marginBottom: '0.5rem' }}>Komentar dengan skor sentimen positif paling tinggi dari seluruh komentar yang dianalisis.</p>
-                  <p style={{ fontSize: '0.875rem', color: '#94a3b8', fontStyle: 'italic', lineHeight: 1.6 }}>
-                    "{data.highlights.positive}"
-                  </p>
+                  <p style={{ fontSize: '0.6875rem', color: '#64748b' }}>{dominantEmotion.val.toFixed(1)}% of comments</p>
                 </div>
+              </div>
+              <p className="db-kpi-desc">{dominantEmotion.desc}</p>
+            </div>
+          )}
 
-                {/* NEGATIVE */}
-                <div className="highlight-negative p-4">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    <svg style={{ width: '1rem', height: '1rem', color: '#f87171' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.737 3H17a2 2 0 012 2v8a2 2 0 01-2 2h-4" />
-                    </svg>
-                    <h5 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#f87171', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Most Negative</h5>
-                  </div>
-                  <p style={{ fontSize: '0.7rem', color: '#475569', marginBottom: '0.5rem' }}>Komentar dengan skor sentimen negatif paling tinggi — menggambarkan kritik atau ketidakpuasan penonton.</p>
-                  <p style={{ fontSize: '0.875rem', color: '#94a3b8', fontStyle: 'italic', lineHeight: 1.6 }}>
-                    "{data.highlights.negative}"
-                  </p>
-                </div>
+        </div>
 
-                {/* LIKED */}
-                <div className="highlight-liked p-4">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    <svg style={{ width: '1rem', height: '1rem', color: '#60a5fa' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                    <h5 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Most Liked</h5>
-                  </div>
-                  <p style={{ fontSize: '0.7rem', color: '#475569', marginBottom: '0.5rem' }}>Komentar yang mendapat jumlah likes terbanyak dari penonton lain di kolom komentar.</p>
-                  <p style={{ fontSize: '0.875rem', color: '#94a3b8', fontStyle: 'italic', lineHeight: 1.6 }}>
-                    "{data.highlights.liked}"
-                  </p>
-                </div>
+        {/* ── ROW 2: CHARTS + EMOTION BARS ── */}
+        <div className="db-row2">
 
+          {/* Sentiment Doughnut */}
+          <div className="card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column' }}>
+            <p className="db-section-label">Sentiment Summary</p>
+            <p style={{ fontSize: '0.8125rem', color: '#475569', marginBottom: '1rem' }}>Overall comment distribution (%)</p>
+            <div style={{ position: 'relative', flex: 1, minHeight: '200px' }}>
+              <Doughnut data={doughnutData} options={doughnutOpts} />
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', paddingBottom: '3rem' }}>
+                <span style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f1f5f9' }}>100%</span>
+                <span style={{ fontSize: '0.6875rem', color: '#64748b' }}>Analyzed</span>
               </div>
             </div>
           </div>
 
-          {/* ========== RIGHT COLUMN ========== */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-            {/* CHARTS */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1, 1fr)', gap: '1.25rem' }} className="charts-grid">
-
-              {/* Sentiment Doughnut */}
-              <div className="card p-5" style={{ display: 'flex', flexDirection: 'column' }}>
-                <p style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Sentiment Summary</p>
-                <p style={{ fontSize: '0.875rem', color: '#475569', marginBottom: '1rem' }}>Overall comment sentiment (%)</p>
-                <div style={{ position: 'relative', flex: 1, minHeight: '220px' }}>
-                  <Doughnut data={sentimentData} options={sentimentOptions} />
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', paddingBottom: '3rem' }}>
-                    <span style={{ fontSize: '1.875rem', fontWeight: 700, color: '#f1f5f9' }}>{sentimentTotal}%</span>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>Total</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Emotion Bar Chart */}
-              <div className="card p-5" style={{ display: 'flex', flexDirection: 'column' }}>
-                <p style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Emotion Distribution</p>
-                <p style={{ fontSize: '0.875rem', color: '#475569', marginBottom: '1rem' }}>Detected emotions (%)</p>
-                <div style={{ flex: 1, minHeight: '220px' }}>
-                  <Bar data={emotionData} options={emotionOptions} />
-                </div>
-
-                {/* Emotion Descriptions */}
-                <div style={{ marginTop: '1.25rem', borderTop: '1px solid rgba(148,163,184,0.1)', paddingTop: '1rem' }}>
-                  <p style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.75rem' }}>
-                    📘 Emotion Guide
-                  </p>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem 1rem' }}>
-                    {[
-                      { emoji: '😡', label: 'Anger', color: '#F87171', desc: 'Komentar yang mengekspresikan kemarahan, frustrasi, atau ketidakpuasan yang kuat.' },
-                      { emoji: '😨', label: 'Fear', color: '#A78BFA', desc: 'Komentar yang menunjukkan rasa takut, khawatir, atau cemas terhadap konten.' },
-                      { emoji: '😄', label: 'Joy', color: '#FBBF24', desc: 'Komentar yang mencerminkan kesenangan, kebahagiaan, atau antusias yang tinggi.' },
-                      { emoji: '😢', label: 'Sadness', color: '#60A5FA', desc: 'Komentar yang mengungkapkan kesedihan, kekecewaan, atau perasaan kehilangan.' },
-                      { emoji: '🤢', label: 'Disgust', color: '#34D399', desc: 'Komentar yang mengekspresikan rasa jijik atau penolakan terhadap sesuatu.' },
-                      { emoji: '😲', label: 'Surprise', color: '#38BDF8', desc: 'Komentar yang mencerminkan rasa terkejut atau kagum terhadap isi video.' },
-                      { emoji: '😐', label: 'Neutral', color: '#9CA3AF', desc: 'Komentar yang bersifat informatif atau deskriptif tanpa emosi yang dominan.' },
-                    ].map(({ emoji, label, color, desc }) => (
-                      <div key={label} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                        <span style={{ fontSize: '1rem', lineHeight: 1.3 }}>{emoji}</span>
-                        <div>
-                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color, display: 'block', marginBottom: '1px' }}>{label}</span>
-                          <span style={{ fontSize: '0.65rem', color: '#475569', lineHeight: 1.4 }}>{desc}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+          {/* Emotion Bar */}
+          <div className="card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column' }}>
+            <p className="db-section-label">Emotion Distribution</p>
+            <p style={{ fontSize: '0.8125rem', color: '#475569', marginBottom: '1rem' }}>Detected emotions by percentage (%)</p>
+            <div style={{ flex: 1, minHeight: '200px' }}>
+              <Bar data={barData} options={barOpts} />
             </div>
+          </div>
 
-            {/* COMMENT FEED */}
-            <CommentFeed comments={data.comments} />
+          {/* Emotion Intensity Bars */}
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <p className="db-section-label">Emotion Intensity</p>
+            <p style={{ fontSize: '0.8125rem', color: '#475569', marginBottom: '1rem' }}>Ranked breakdown with context</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {emotionEntries.map(([key, val]) => {
+                const m = getMeta(key);
+                return (
+                  <div key={key}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8125rem', color: '#cbd5e1', fontWeight: 500 }}>
+                        <span>{m.emoji}</span>
+                        <span style={{ textTransform: 'capitalize' }}>{key}</span>
+                      </span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: m.color }}>{val.toFixed(1)}%</span>
+                    </div>
+                    <div style={{ height: '6px', background: 'rgba(255,255,255,0.06)', borderRadius: '99px', overflow: 'hidden' }}>
+                      <div style={{ width: `${val}%`, background: m.color, height: '100%', borderRadius: '99px', boxShadow: `0 0 8px ${m.color}66`, transition: 'width 1s cubic-bezier(.16,1,.3,1)' }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+        </div>
+
+        {/* ── ROW 3: HIGHLIGHTS ── */}
+        <div className="db-row3">
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <p className="db-section-label" style={{ marginBottom: '1rem' }}>Comment Highlights</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+
+              <div className="highlight-positive" style={{ padding: '0.875rem 1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '0.875rem' }}>✅</span>
+                  <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Most Positive</span>
+                </div>
+                <p style={{ fontSize: '0.8125rem', color: '#94a3b8', fontStyle: 'italic', lineHeight: 1.6 }}>"{data.highlights.positive}"</p>
+              </div>
+
+              <div className="highlight-negative" style={{ padding: '0.875rem 1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '0.875rem' }}>⚠️</span>
+                  <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#f87171', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Most Negative</span>
+                </div>
+                <p style={{ fontSize: '0.8125rem', color: '#94a3b8', fontStyle: 'italic', lineHeight: 1.6 }}>"{data.highlights.negative}"</p>
+              </div>
+
+              <div className="highlight-liked" style={{ padding: '0.875rem 1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '0.875rem' }}>👍</span>
+                  <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Most Liked</span>
+                </div>
+                <p style={{ fontSize: '0.8125rem', color: '#94a3b8', fontStyle: 'italic', lineHeight: 1.6 }}>"{data.highlights.liked}"</p>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Emotion Guide */}
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <p className="db-section-label" style={{ marginBottom: '1rem' }}>Emotion Guide</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem' }}>
+              {Object.entries(EMOTION_META).map(([key, m]) => (
+                <div key={key} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', padding: '0.5rem', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                  <span style={{ fontSize: '1.125rem', lineHeight: 1.2 }}>{m.emoji}</span>
+                  <div>
+                    <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: m.color, display: 'block', textTransform: 'capitalize' }}>{key}</span>
+                    <span style={{ fontSize: '0.625rem', color: '#475569', lineHeight: 1.4 }}>{m.desc}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Responsive grid styles */}
-      <style>{`
-        @media (min-width: 1280px) {
-          .dashboard-grid {
-            grid-template-columns: 1fr 2fr !important;
-          }
-        }
-        @media (min-width: 1024px) {
-          .charts-grid {
-            grid-template-columns: 1fr 1fr !important;
-          }
-        }
-      `}</style>
+        {/* ── ROW 4: AUDIENCE VOICE SPECTRUM (top comments) ── */}
+        <div className="card" style={{ padding: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <div>
+              <p className="db-section-label">Audience Voice Spectrum</p>
+              <p style={{ fontSize: '0.8125rem', color: '#475569' }}>Top comments across all sentiments</p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              {(['all', 'positive', 'negative', 'neutral'] as const).map(s => (
+                <button
+                  key={s}
+                  onClick={() => setSentFilter(s)}
+                  style={{
+                    padding: '4px 12px', borderRadius: '999px', fontSize: '0.6875rem', fontWeight: 600,
+                    textTransform: 'capitalize', border: '1px solid',
+                    background: sentFilter === s ? (s === 'positive' ? 'rgba(16,185,129,0.15)' : s === 'negative' ? 'rgba(239,68,68,0.15)' : 'rgba(99,102,241,0.15)') : 'transparent',
+                    borderColor: sentFilter === s ? (s === 'positive' ? '#34d399' : s === 'negative' ? '#f87171' : '#818cf8') : 'rgba(99,102,241,0.15)',
+                    color: sentFilter === s ? (s === 'positive' ? '#34d399' : s === 'negative' ? '#f87171' : '#94a3b8') : '#64748b',
+                    cursor: 'pointer',
+                  }}
+                >{s}</button>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
+            {filteredComments.slice(0, 6).map((c, i) => {
+              const em = getMeta(c.emotion);
+              const sentColor = c.sentiment === 'positive' ? '#34d399' : c.sentiment === 'negative' ? '#f87171' : '#94a3b8';
+              return (
+                <div key={i} style={{ padding: '0.875rem', borderRadius: '10px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                  <p style={{ fontSize: '0.8125rem', color: '#cbd5e1', lineHeight: 1.6, flex: 1 }}>"{c.text}"</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.875rem' }}>{em.emoji}</span>
+                      <span style={{ fontSize: '0.625rem', fontWeight: 600, color: em.color, textTransform: 'capitalize' }}>{c.emotion}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      {c.likes > 0 && <span style={{ fontSize: '0.625rem', color: '#64748b' }}>👍 {c.likes}</span>}
+                      <span style={{ fontSize: '0.625rem', fontWeight: 600, color: sentColor, textTransform: 'uppercase', padding: '2px 8px', borderRadius: '99px', background: sentColor + '18', border: `1px solid ${sentColor}30` }}>{c.sentiment}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── ROW 5: FULL COMMENT TABLE ── */}
+        <div className="card" style={{ padding: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div>
+              <p className="db-section-label">Full Comment Feed</p>
+              <p style={{ fontSize: '0.8125rem', color: '#475569' }}>{filteredComments.length} comments</p>
+            </div>
+            <input
+              id="commentSearch"
+              type="text"
+              placeholder="Search comments..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ height: '36px', padding: '0 14px', fontSize: '0.8125rem', borderRadius: '8px', minWidth: '200px' }}
+            />
+          </div>
+          <div className="custom-scrollbar" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '22rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <table style={{ width: '100%', minWidth: '600px', textAlign: 'left' }}>
+              <thead>
+                <tr>
+                  <th style={{ padding: '10px 14px' }}>Comment</th>
+                  <th style={{ padding: '10px 14px' }}>Emotion</th>
+                  <th style={{ padding: '10px 14px' }}>Sentiment</th>
+                  <th style={{ padding: '10px 14px' }}>Likes</th>
+                  <th style={{ padding: '10px 14px' }}>Time</th>
+                </tr>
+              </thead>
+              <tbody id="commentsTableBody">
+                {filteredComments.length === 0 ? (
+                  <tr><td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#475569', fontSize: '0.875rem' }}>No comments found.</td></tr>
+                ) : filteredComments.map((c, i) => {
+                  const em = getMeta(c.emotion);
+                  const sentColor = c.sentiment === 'positive' ? '#34d399' : c.sentiment === 'negative' ? '#f87171' : '#94a3b8';
+                  return (
+                    <tr key={i}>
+                      <td style={{ padding: '10px 14px', maxWidth: '22rem', color: '#cbd5e1', fontSize: '0.8125rem', lineHeight: 1.5 }}>{c.text}</td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', color: em.color, fontWeight: 600, textTransform: 'capitalize' }}>
+                          {em.emoji} {c.emotion}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: sentColor, textTransform: 'uppercase', padding: '2px 8px', borderRadius: '99px', background: sentColor + '18', border: `1px solid ${sentColor}30` }}>{c.sentiment}</span>
+                      </td>
+                      <td style={{ padding: '10px 14px', color: '#94a3b8', fontSize: '0.8125rem' }}>{c.likes}</td>
+                      <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '0.75rem' }}>{new Date(c.time).toLocaleString()}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }
