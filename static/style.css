@@ -199,15 +199,15 @@ h1 {
   background: #ffffffe6;
   font-size: 12px;
   font-weight: 600;
-  .analysis-limit {
-    margin: 12px 0 0;
-    color: #68708a;
-    font-size: 11px;
-  }
-  .analysis-limit strong {
-    color: var(--lav);
-  }
   box-shadow: 0 10px 24px #23274222;
+}
+.analysis-limit {
+  margin: 12px 0 0;
+  color: #68708a;
+  font-size: 11px;
+}
+.analysis-limit strong {
+  color: var(--lav);
 }
 .section {
   padding: 64px 0 0;
@@ -349,12 +349,109 @@ h2 {
   grid-template-columns: repeat(3, 1fr);
 }
 .insight-card h3 {
-  margin: 0 0 15px;
+  margin: 0;
   font-size: 14px;
   text-transform: uppercase;
 }
-.insight-card ul {
-  padding-left: 17px;
+.insight-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0eaf4;
+}
+.insight-dot {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: 50%;
+  background: #6366f1;
+}
+.insight-dot.positive {
+  background: var(--green);
+}
+.insight-dot.negative {
+  background: var(--coral);
+}
+.insight-tag {
+  margin-left: auto;
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: var(--lav);
+  background: #f4effa;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.green-tag {
+  color: #18794d;
+  background: #e4f5eb;
+}
+.red-tag {
+  color: #a34339;
+  background: #fde9e6;
+}
+.insight-bars {
+  margin-top: 15px;
+}
+.insight-bar {
+  margin: 12px 0;
+}
+.insight-bar-label {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+}
+.insight-bar-track {
+  height: 7px;
+  margin-top: 5px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #f0eaf5;
+}
+.insight-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: #6366f1;
+}
+.insight-foot {
+  display: block;
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid #f0eaf4;
+  color: #8b8fa1;
+  font-size: 10px;
+}
+.insight-list {
+  min-height: 150px;
+  padding-top: 12px;
+}
+.insight-list p {
+  margin: 0;
+}
+.insight-item {
+  margin: 9px 0;
+  padding: 10px;
+  border: 1px solid #d8f0e2;
+  border-radius: 10px;
+  background: #f4fcf7;
+}
+.insight-item.negative-item {
+  border-color: #f5d8d3;
+  background: #fff8f7;
+}
+.insight-item strong {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--ink);
+  font-size: 11px;
+}
+.insight-item span {
+  color: #697087;
+  font-size: 11px;
+  line-height: 1.5;
 }
 .category {
   border-top: 4px solid var(--green);

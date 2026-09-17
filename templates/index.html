@@ -70,7 +70,7 @@
         </div>
         <div class="hero-art">
           <img
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWb0W89l0528DNDAsSyAfxbFPE6PLfc9w1T8adem22eyixx62VnXGI2wVGMedYB5qzTTTjxMpui6CW8I88yPg5y1DR_-f1mLNQQxbq9Zf5HwiZud1gblVngo9iEucJYwqYSdWSzfJoTZb5VFhCSba3LN6eqI_ija2om9Y1QHm85AiJ8dN0lR6CJEeD4nEVW8Q_3VZ68chSq4BDGRnykKzt-KJ1oCTPqLZ_6RxWrVm8i5FKY_w0zoVMI7vyo5Di_mEEzVI"
+            src="{{ url_for('static', filename='dashboard.jpg') }}"
             alt="Pemandangan Emotion Valley"
           />
           <div class="art-fade"></div>
@@ -139,34 +139,60 @@
         </div>
       </section>
 
-      <section class="section shell">
+      <section class="section shell" id="ai-content-insights">
         <div class="section-head">
           <div>
             <span class="eyebrow">Content insights</span>
             <h2 class="font-display">Wawasan Konten AI</h2>
           </div>
-          <p>Insight mengikuti komentar video yang diproses.</p>
+          <p id="insightDescription">
+            Insight mengikuti komentar video yang diproses.
+          </p>
         </div>
         <div class="insight-grid">
           <article class="card insight-card">
-            <h3>Topik Utama</h3>
-            <p>
-              Distribusi sentimen, emosi dominan, dan komentar dengan engagement
-              tertinggi.
+            <div class="insight-card-head">
+              <span class="insight-dot topic"></span>
+              <h3>Topik Utama Pembicaraan</h3>
+              <span class="insight-tag">3 indikator</span>
+            </div>
+            <p id="topicInsight">
+              Analisis komentar akan menunjukkan pola pembicaraan utama audiens.
             </p>
-            <ul>
-              <li>Sentiment mapping</li>
-              <li>Emotion spectrum</li>
-              <li>Audience highlights</li>
-            </ul>
+            <div class="insight-bars" id="topicBars"></div>
+            <small class="insight-foot" id="topicFoot"
+              >Menunggu data video</small
+            >
           </article>
           <article class="card insight-card">
-            <h3>Yang Disukai Audiens</h3>
-            <p id="positiveHighlight">Belum ada analisis positif.</p>
+            <div class="insight-card-head">
+              <span class="insight-dot positive"></span>
+              <h3>Apresiasi &amp; Hal yang Disukai</h3>
+              <span class="insight-tag green-tag" id="positiveTag"
+                >Belum tersedia</span
+              >
+            </div>
+            <div class="insight-list" id="positiveInsightList">
+              <p>Belum ada komentar positif yang dianalisis.</p>
+            </div>
+            <small class="insight-foot" id="positiveFoot"
+              >Akan muncul setelah analisis</small
+            >
           </article>
           <article class="card insight-card">
-            <h3>Area Perbaikan</h3>
-            <p id="negativeHighlight">Belum ada analisis negatif.</p>
+            <div class="insight-card-head">
+              <span class="insight-dot negative"></span>
+              <h3>Isu &amp; Keluhan Utama</h3>
+              <span class="insight-tag red-tag" id="negativeTag"
+                >Belum tersedia</span
+              >
+            </div>
+            <div class="insight-list" id="negativeInsightList">
+              <p>Belum ada komentar negatif yang dianalisis.</p>
+            </div>
+            <small class="insight-foot" id="negativeFoot"
+              >Akan muncul setelah analisis</small
+            >
           </article>
         </div>
       </section>

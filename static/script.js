@@ -97,7 +97,82 @@ document.addEventListener("DOMContentLoaded", () => {
     comments = Array.isArray(data.comments) ? data.comments : [];
     renderCategories();
     renderSpectrum(emotions);
+    renderInsights(data, sentiment, emotions, positive, negative, dominant);
     applyFilters();
+  }
+
+  function renderInsights(
+    data,
+    sentiment,
+    emotions,
+    positive,
+    negative,
+    dominant,
+  ) {
+    const neutral = Number(sentiment.neutral || 0);
+    const total = Number(data.total_comments || comments.length);
+    const topicBars = [
+      ["Positif", positive, "#6366f1"],
+      ["Netral / inquiry", neutral, "#2f9d95"],
+      ["Kritis", negative, "#756396"],
+    ];
+    document.getElementById("topicBars").innerHTML = topicBars
+      .map(
+        ([label, value, color]) =>
+          `<div class="insight-bar"><div class="insight-bar-label"><span>#${label}</span><span>${Number(value).toFixed(1)}%</span></div><div class="insight-bar-track"><div class="insight-bar-fill" style="width:${Math.min(100, Number(value))}%;background:${color}"></div></div></div>`,
+      )
+      .join("");
+    setText(
+      "topicInsight",
+      `${number(total)} komentar dipetakan ke dalam tiga pola respons untuk video "${data.title}".`,
+    );
+    setText(
+      "topicFoot",
+      `Net score: ${positive - negative >= 0 ? "+" : ""}${(positive - negative).toFixed(1)} · berdasarkan ${number(total)} komentar`,
+    );
+    setText("positiveTag", `${positive.toFixed(1)}% positif`);
+    setText("negativeTag", `${negative.toFixed(1)}% area friksi`);
+    setText(
+      "positiveFoot",
+      `${number(comments.filter((comment) => comment.sentiment === "positive").length)} komentar positif terdeteksi`,
+    );
+    setText(
+      "negativeFoot",
+      `${number(comments.filter((comment) => comment.sentiment === "negative").length)} komentar kritis terdeteksi`,
+    );
+    renderInsightComments(
+      "positiveInsightList",
+      comments
+        .filter((comment) => comment.sentiment === "positive")
+        .sort((a, b) => b.likes - a.likes)
+        .slice(0, 3),
+      "positive",
+    );
+    renderInsightComments(
+      "negativeInsightList",
+      comments
+        .filter((comment) => comment.sentiment === "negative")
+        .sort((a, b) => b.likes - a.likes)
+        .slice(0, 3),
+      "negative",
+    );
+    if (dominant)
+      setText(
+        "insightDescription",
+        `Sintesis ${number(total)} komentar · emosi dominan ${dominant[0]} (${Number(dominant[1]).toFixed(1)}%).`,
+      );
+  }
+
+  function renderInsightComments(id, items, type) {
+    const container = document.getElementById(id);
+    container.innerHTML =
+      items
+        .map(
+          (comment) =>
+            `<div class="insight-item ${type === "negative" ? "negative-item" : ""}"><strong>${escapeHtml(comment.emotion || type)}</strong><span>${escapeHtml(comment.text)}</span></div>`,
+        )
+        .join("") ||
+      `<p>Belum ada komentar ${type === "positive" ? "positif" : "negatif"}.</p>`;
   }
 
   function renderCategories() {

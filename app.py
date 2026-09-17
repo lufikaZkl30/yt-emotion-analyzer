@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify, send_file
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from textblob import TextBlob
 from dotenv import load_dotenv
 from transformers import pipeline
@@ -136,6 +137,12 @@ def analyze():
 
         return jsonify(result)
 
+    except HttpError as e:
+        if e.resp.status == 403 and "commentsDisabled" in str(e):
+            return jsonify({
+                "error": "Video ini menonaktifkan komentar. Silakan gunakan video YouTube lain yang memiliki komentar aktif."
+            }), 422
+        return jsonify({"error": "YouTube API gagal memproses video ini."}), 502
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
