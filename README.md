@@ -118,7 +118,7 @@ Audience Insights
 The interface follows a YouTube Analytics × AI Intelligence concept.
 
 <p align="center">
-  <img src="static/dashboard.png" alt="YT Emotion Analyzer" width="auto">
+  <img src="static/ss.png" alt="YT Emotion Analyzer" width="600">
 </p>
 
 ## 🛠️ Tech Stack
