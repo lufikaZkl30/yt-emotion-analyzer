@@ -1,0 +1,15 @@
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local model and generated files
+*.log
+*.xlsx
+
+# Frontend build output
+frontend/node_modules/
+frontend/dist/
