@@ -87,7 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     setText(
       "analysisStatus",
-      `Analisis selesai · ${number(data.total_comments)} komentar`,
+      `${number(data.total_comments)} komentar dianalisis (maks. 500)`,
     );
     setText(
       "summaryText",

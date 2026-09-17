@@ -12,7 +12,7 @@
     <link
       rel="icon"
       type="image/png"
-      href="{{ url_for('static', filename='logo.png') }}"
+      href="{{ url_for('static', filename='logo-2.png') }}"
     />
   </head>
   <body>
@@ -21,7 +21,7 @@
         <a class="brand" href="#hero">
           <img
             class="brand-logo"
-            src="{{ url_for('static', filename='logo.png') }}"
+            src="{{ url_for('static', filename='logo-2.png') }}"
             alt="YT Emotion Analyzer"
           />
           <span>YT Emotion Analyzer</span>
@@ -60,6 +60,10 @@
               GO <span aria-hidden="true">→</span>
             </button>
           </form>
+          <p class="analysis-limit">
+            Maksimal <strong>500 komentar</strong> akan dianalisis dari video
+            yang dipilih.
+          </p>
           <div id="errorMessage" class="error hidden" role="alert">
             <strong>Error:</strong> <span id="errorText"></span>
           </div>
@@ -130,7 +134,6 @@
               <p id="summaryText">
                 Hasil analisis dari Python akan tampil di sini.
               </p>
-              <small>TextBlob + Hugging Face emotion model</small>
             </article>
           </div>
         </div>

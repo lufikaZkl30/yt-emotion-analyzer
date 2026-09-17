@@ -199,6 +199,14 @@ h1 {
   background: #ffffffe6;
   font-size: 12px;
   font-weight: 600;
+  .analysis-limit {
+    margin: 12px 0 0;
+    color: #68708a;
+    font-size: 11px;
+  }
+  .analysis-limit strong {
+    color: var(--lav);
+  }
   box-shadow: 0 10px 24px #23274222;
 }
 .section {
