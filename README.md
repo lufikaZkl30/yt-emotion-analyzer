@@ -1,141 +1,191 @@
-# 🎬 YouTube Comment Analyzer (AI-Based)
+<h1 align="center">
+    YouTube Emotion Analyzer (AI-Based)
+</h1>
 
-> 🚀 AI-powered system to analyze user sentiments from YouTube comments using NLP and Binary Search Tree (BST).
+<p align="center">
 
----
+<img src="https://img.shields.io/badge/AI-NLP-8B5CF6?style=for-the-badge" alt="AI NLP">
+<img src="https://img.shields.io/badge/YouTube-Data%20Analysis-FF0033?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube">
+<img src="https://img.shields.io/badge/Python-Backend-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
 
-## 📌 Project Overview
-This project is an **AI-based YouTube Comment Analyzer** designed to extract insights from user comments on YouTube videos. It uses **Natural Language Processing (NLP)** to classify sentiments into **positive, negative, and neutral** categories.
-
-The system also implements a **Binary Search Tree (BST)** in Java to efficiently store and search video data based on view counts.
-
----
-
-## 🎯 Objectives
-- Analyze audience emotions from YouTube comments  
-- Classify sentiment using NLP techniques  
-- Improve search efficiency using BST  
-- Provide meaningful insights through visualization  
+</p>
 
 ---
 
-## ⚙️ Features
-- ✨ Sentiment Analysis (Positive, Negative, Neutral)  
-- 🌳 Binary Search Tree (BST) Implementation  
-- 🔍 Search Top 10 Closest Videos by Views  
-- 📊 Data Processing from CSV Dataset  
-- 🖥️ Tree Structure Visualization (┌── │ └──)  
-- 🎨 Interactive Dashboard Design (Figma/Canva)  
+# 📌 About
+
+**YT Emotion Analyzer** is a web-based AI/NLP application that analyzes audience reactions from YouTube comments.
+
+Simply enter a **YouTube video URL**, and the system retrieves available comments and transforms them into meaningful analysis.
+
+The project focuses on answering:
+
+> **"What are people actually saying about this video?"**
+
+Instead of manually reading hundreds of comments, users can quickly understand the audience through sentiment, emotions, discussion topics, and AI-generated insights.
 
 ---
 
-## 🧠 How It Works
-1. 📥 **Data Collection**  
-   Dataset is loaded from `trending_youtube.csv`
+# ✨ Features
 
-2. 🧹 **Data Preprocessing**  
-   - Cleaning text data  
-   - Tokenization  
-   - Preparing comments for analysis  
+## 🎥 YouTube Video Analysis
 
-3. 🤖 **Sentiment Analysis (NLP)**  
-   Classifying comments into sentiment categories  
+Retrieve information from a YouTube video, including:
 
-4. 🌳 **BST Implementation**  
-   - Storing video data based on views  
-   - Efficient searching and sorting  
+- Video title
+- Thumbnail
+- Like count
+- Comment data
+- Video metadata
 
-5. 🔎 **Search Function**  
-   - Input: number of views  
-   - Output: Top 10 closest videos  
+### 📊 Sentiment Analysis
 
-6. 📊 **Visualization**  
-   - Tree structure display  
-   - Dashboard UI for insights  
+Classify comments into:
 
----
+- 🟢 Positive
+- ⚪ Neutral
+- 🔴 Negative
+
+The current implementation uses **TextBlob polarity** for sentiment analysis.
+
+### 😊 Emotion Analysis
+
+Identify emotions expressed in comments, such as:
+
+- 😄 Joy
+- ❤️ Love
+- 😮 Surprise
+- 😢 Sadness
+- 😡 Anger
+- 😨 Fear
+
+### 🧠 AI Audience Insights
+
+Go beyond sentiment and emotion analysis.
+The AI insight layer is designed to understand what viewers are actually talking about.
+
+It can identify:
+
+- 🏷️ Main topics
+- 🔁 Common themes
+- 👍 What viewers like
+- ⚠️ Common concerns
+- ❓ Frequently asked questions
+- 📝 Overall audience summary
+
+Instead of simply repeating individual comments, similar comments can be grouped into meaningful patterns.
+### 🔄 How It Works
+```step by step analisis
+YouTube Video URL
+        ↓
+YouTube Data API
+        ↓
+Collect Comments
+        ↓
+Text Preprocessing
+        ↓
+NLP / AI Analysis
+        │
+        ├── Sentiment Analysis
+        ├── Emotion Classification
+        ├── Topic / Theme Analysis
+        └── Audience Insights
+        ↓
+Interactive Dashboard
+        ↓
+CSV / Excel Export
+```
+
+### 🧠 AI Audience Insights
+
+The main idea behind this feature is:
+```
+Sentiment Analysis
+        ↓
+"How do viewers feel?"
+
+Emotion Analysis
+        ↓
+"What emotions appear?"
+
+Audience Insights
+        ↓
+"What are viewers actually talking about?"
+```
+
+### 📈 Dashboard 
+
+The interface follows a YouTube Analytics × AI Intelligence concept.
+
+<p align="center">
+  <img src="static/dashboard.png" alt="YT Emotion Analyzer" width="auto">
+</p>
 
 ## 🛠️ Tech Stack
-- 💻 Java  
-- 🧠 Natural Language Processing (NLP)  
-- 📂 CSV Dataset  
-- 🎨 Figma / Canva  
+- Tailwind CSS
+- JavaScript
+- Chart.js / Data Visualization
+- Backend
+- Python
+- Flask
+- YouTube Data API
+- AI / NLP
+- TextBlob
+- Hugging Face Transformers
+- DistilBERT Emotion Model
+- AI / LLM for Audience Insights
+- Data Export
+- CSV
+- Excel
 
----
+### 🏗️ System Architecture
 
-## 📈 Example Output
-- Sentiment classification results  
-- BST tree visualization  
-- Top 10 closest videos based on views  
-
----
-
-## 💡 Key Highlights
-- Combines **AI and Data Structures**  
-- Efficient search using **Binary Search Tree (BST)**  
-- Uses real-world dataset (YouTube)  
-- Interactive and user-friendly design  
-
----
-
-## 🚀 Future Improvements
-- Integrate YouTube API (real-time data)  
-- Add more detailed emotion categories  
-- Develop web-based application  
-- Improve NLP model accuracy  
-
----
-
-## 💻 Getting Started
-
-### Prerequisites
-- Java 8 or higher
-- Node.js 14 or higher
-- npm or yarn
-
-### Installation
-1. Clone the repository
-
-```bash
-git clone https://github.com/lufikaZkl30/yt-emotion-analyzer.git
-cd yt-emotion-analyzer
+``` struktur
+                    ┌───────────────┐
+                    │     USER      │
+                    └───────┬───────┘
+                            ↓
+                    ┌───────────────┐
+                    │ React + Vite  │
+                    │   Frontend    │
+                    └───────┬───────┘
+                            │
+                         HTTP/JSON
+                            │
+                            ↓
+                    ┌───────────────┐
+                    │ Python Flask  │
+                    │    Backend    │
+                    └───────┬───────┘
+                            │
+              ┌─────────────┴─────────────┐
+              ↓                           ↓
+       ┌───────────────┐          ┌────────────────┐
+       │ YouTube API   │          │    NLP / AI    │
+       └───────┬───────┘          └───────┬────────┘
+               │                          │
+               │              ┌───────────┼───────────┐
+               │              ↓           ↓           ↓
+               │         Sentiment     Emotion    AI Insights
+               │         TextBlob     DistilBERT      LLM
+               │              │           │           │
+               └──────────────┴───────────┴───────────┘
+                              ↓
+                     ┌─────────────────┐
+                     │ Analysis Result │
+                     └────────┬────────┘
+                              ↓
+                     ┌─────────────────┐
+                     │ React Dashboard │
+                     └─────────────────┘
 ```
 
-2. Install dependencies
+## Link Website
 
-```bash
-# For backend
+``` webiste
 
-./gradlew build
-
-# For frontend
-cd ../frontend
-npm install
-# or
-yarn install
-```
-
-3. Run the application
-
-```bash
-# Start backend
-./gradlew bootRun
-
-# Start 
-python app.py
 
 ```
-
-4. Open in browser
-
-Open [http://localhost:1342](http://localhost:1342) to view the application
-
----
-
-## 👤 Author
-**lufikaZkl30** ✨  
-
----
 
 ## ⭐ Support
 If you like this project, consider giving it a **star ⭐ on GitHub!**
