@@ -1,250 +1,179 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const form = document.getElementById("analysisForm");
-    const input = document.getElementById("youtubeLinkInput");
-    const loading = document.getElementById("loadingIndicator");
-    const errorDiv = document.getElementById("errorMessage");
-    const errorText = document.getElementById("errorText");
-    const landingPage = document.getElementById("landingPage");
-    const dashboardPage = document.getElementById("dashboardPage");
+  const form = document.getElementById("analysisForm");
+  const input = document.getElementById("youtubeLinkInput");
+  const loading = document.getElementById("loadingIndicator");
+  const errorBox = document.getElementById("errorMessage");
+  const errorText = document.getElementById("errorText");
+  const analyzeButton = document.getElementById("analyzeButton");
+  let comments = [];
 
-    // dashboard elements
-    const videoTitle = document.getElementById("videoTitle");
-    const videoThumbnail = document.getElementById("videoThumbnail");
-    const totalLikes = document.getElementById("totalLikes");
-    const totalComments = document.getElementById("totalComments");
-    const highlightPositive = document.getElementById("highlightPositive");
-    const highlightNegative = document.getElementById("highlightNegative");
-    const highlightLiked = document.getElementById("highlightLiked");
-    const commentsTableBody = document.getElementById("commentsTableBody");
+  const setText = (id, value) => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
+  };
+  const number = (value) => Number(value || 0).toLocaleString("id-ID");
+  const escapeHtml = (value) =>
+    String(value ?? "").replace(
+      /[&<>\"']/g,
+      (character) =>
+        ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[character],
+    );
 
-    let sentimentChart, emotionChart;
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    errorBox.classList.add("hidden");
+    loading.classList.remove("hidden");
+    analyzeButton.disabled = true;
 
-    form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        errorDiv.classList.add("hidden");
-        loading.classList.remove("hidden");
-        // window.lastAnalyzedData = data;
-
-        try {
-            const response = await fetch("/analyze", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ youtube_url: input.value })
-            });
-
-            const data = await response.json();
-            loading.classList.add("hidden");
-
-            if (!response.ok) {
-                errorText.textContent = data.error || "Unknown error";
-                errorDiv.classList.remove("hidden");
-                return;
-            }
-
-            // Switch to dashboard view
-            landingPage.classList.add("hidden");
-            dashboardPage.classList.remove("hidden");
-            setTimeout(() => dashboardPage.classList.add("active"), 50);
-
-            // Update video info
-            videoTitle.textContent = data.title;
-            videoThumbnail.src = data.thumbnail;
-            totalLikes.textContent = data.total_likes.toLocaleString();
-            totalComments.textContent = data.total_comments.toLocaleString();
-
-            // Highlights
-            highlightPositive.querySelector("p").textContent = `"${data.highlights.positive}"`;
-            highlightNegative.querySelector("p").textContent = `"${data.highlights.negative}"`;
-            highlightLiked.querySelector("p").textContent = `"${data.highlights.liked}"`;
-
-            // Charts
-            updateSentimentChart(data.sentiment_percent);
-            updateEmotionChart(data.emotion_percent);
-
-            // Comments
-            renderComments(data.comments);
-
-        } catch (err) {
-            loading.classList.add("hidden");
-            errorText.textContent = err.message;
-            errorDiv.classList.remove("hidden");
-        }
-    });
-
-    // ===============================
-    // 🔙 Tombol Back ke Landing Page
-    // ===============================
-    const backButton = document.getElementById("backButton");
-    backButton.addEventListener("click", () => {
-        dashboardPage.classList.add("opacity-0");
-        setTimeout(() => {
-            dashboardPage.classList.add("hidden");
-            landingPage.classList.remove("hidden");
-            setTimeout(() => landingPage.classList.remove("opacity-0"), 50);
-        }, 400);
-    });
-    // ===============================
-
-    // =============== CHART UPDATES ===============
-    function updateSentimentChart(sentiment) {
-    const ctx = document.getElementById("sentimentChart");
-    if (sentimentChart) sentimentChart.destroy();
-
-    sentimentChart = new Chart(ctx, {
-        type: "doughnut",
-        data: {
-            labels: ["Positive", "Negative", "Neutral"],
-            datasets: [{
-                data: [sentiment.positive, sentiment.negative, sentiment.neutral],
-                backgroundColor: ["#10B981", "#EF4444", "#9CA3AF"],
-                borderColor: "#0f172a",
-                borderWidth: 2,
-                hoverOffset: 10
-            }]
-        },
-        options: {
-            cutout: "75%",
-            plugins: {
-                legend: {
-                    position: "bottom",
-                    labels: {
-                        color: "#cbd5e1",
-                        font: { size: 13, weight: 500 }
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: (context) => `${context.label}: ${context.parsed}%`
-                    }
-                }
-            }
-        }
-    });
-
-    // Update center text
-    const total = (sentiment.positive + sentiment.negative + sentiment.neutral).toFixed(0);
-    const center = document.querySelector("#sentimentChart").parentNode.querySelector(".absolute");
-    if (center) center.innerHTML = `<span class="text-3xl font-semibold text-white">${total}%</span><p class="text-slate-400 text-sm">Total</p>`;
-    }
-
-    function updateEmotionChart(emotions) {
-    const ctx = document.getElementById("emotionChart");
-    if (emotionChart) emotionChart.destroy();
-
-    emotionChart = new Chart(ctx, {
-        type: "bar",
-        data: {
-            labels: Object.keys(emotions),
-            datasets: [{
-                label: "Emotion %",
-                data: Object.values(emotions),
-                backgroundColor: [
-                    "#60A5FA", "#34D399", "#F472B6", "#FBBF24",
-                    "#A78BFA", "#F87171", "#38BDF8"
-                ],
-                borderRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false },
-                tooltip: { callbacks: { label: ctx => `${ctx.parsed.y}%` } }
-            },
-            scales: {
-                x: {
-                    ticks: { color: "#cbd5e1", font: { size: 12 } },
-                    grid: { display: false }
-                },
-                y: {
-                    ticks: { color: "#64748b", font: { size: 12 }, stepSize: 20 },
-                    grid: { color: "rgba(148,163,184,0.1)" },
-                    beginAtZero: true
-                }
-            }
-        }
-    });}
-
-    // =============== COMMENT FILTERING & SORTING ===============
-    const sentimentFilter = document.getElementById("sentimentFilter");
-    const sortOrder = document.getElementById("sortOrder");
-    const commentSearch = document.getElementById("commentSearch");
-    let allComments = [];
-
-    function renderComments(comments) {
-        allComments = comments; // simpan semua komentar
-        applyFilters();
-    }
-
-    function applyFilters() {
-        let filtered = [...allComments];
-        const filterValue = sentimentFilter.value;
-        const sortValue = sortOrder.value;
-        const searchValue = commentSearch.value.toLowerCase();
-
-        // Filter sentiment
-        if (filterValue !== "all") {
-            filtered = filtered.filter(c => c.sentiment.toLowerCase() === filterValue);
-        }
-
-        // Filter by text
-        if (searchValue) {
-            filtered = filtered.filter(c => c.text.toLowerCase().includes(searchValue));
-        }
-
-        // Sort
-        if (sortValue === "likes") {
-            filtered.sort((a, b) => b.likes - a.likes);
-        } else if (sortValue === "newest") {
-            filtered.sort((a, b) => new Date(b.time) - new Date(a.time));
-        } else if (sortValue === "oldest") {
-            filtered.sort((a, b) => new Date(a.time) - new Date(b.time));
-        }
-
-        // Render hasil
-        commentsTableBody.innerHTML = "";
-        if (filtered.length === 0) {
-            commentsTableBody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500 dark:text-slate-400">No comments found.</td></tr>`;
-            return;
-        }
-
-        filtered.forEach(c => {
-            const row = document.createElement("tr");
-            const badgeClass = c.sentiment === 'positive' ? 'badge-positive' : c.sentiment === 'negative' ? 'badge-negative' : 'badge-neutral';
-            row.innerHTML = `
-                <td class="p-3 text-slate-300 text-sm leading-relaxed max-w-xs">${c.text}</td>
-                <td class="p-3"><span class="sentiment-badge ${badgeClass}">${c.sentiment}</span></td>
-                <td class="p-3 text-slate-400 text-sm font-medium">${c.likes}</td>
-                <td class="p-3 text-slate-500 text-xs">${new Date(c.time).toLocaleString()}</td>
-            `;
-            commentsTableBody.appendChild(row);
-        });
-    }
-
-    // Event listeners
-    [sentimentFilter, sortOrder, commentSearch].forEach(el => {
-        el.addEventListener("input", applyFilters);
-    });
-
-    // fungsi button download CSV
-    document.getElementById("downloadReportBtn").addEventListener("click", async () => {
     try {
-        const response = await fetch("/download-report", { method: "POST" });
-        if (!response.ok) throw new Error("Download failed");
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "YTEmotionReport.xlsx";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-    } catch (err) {
-        alert("Failed to download report!");
-        console.error(err);
+      const response = await fetch("/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ youtube_url: input.value.trim() }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Analisis gagal.");
+      renderAnalysis(data);
+      document
+        .getElementById("analisis-section")
+        .scrollIntoView({ behavior: "smooth" });
+    } catch (error) {
+      errorText.textContent =
+        error instanceof Error
+          ? error.message
+          : "Tidak dapat terhubung ke Flask.";
+      errorBox.classList.remove("hidden");
+    } finally {
+      loading.classList.add("hidden");
+      analyzeButton.disabled = false;
     }
-    });
+  });
 
+  function renderAnalysis(data) {
+    const sentiment = data.sentiment_percent || {};
+    const emotions = data.emotion_percent || {};
+    const positive = Number(sentiment.positive || 0);
+    const negative = Number(sentiment.negative || 0);
+    const dominant = Object.entries(emotions).sort((a, b) => b[1] - a[1])[0];
+    const net = positive - negative;
+
+    document.getElementById("videoThumbnail").src = data.thumbnail;
+    setText("videoTitle", data.title);
+    setText("totalLikes", number(data.total_likes));
+    setText("totalComments", number(data.total_comments));
+    setText("netScore", `${net >= 0 ? "+" : ""}${net.toFixed(1)}`);
+    setText(
+      "sentimentScore",
+      `${((positive + (100 - negative)) / 2).toFixed(1)}`,
+    );
+    setText("positivePercent", `${positive.toFixed(1)}%`);
+    setText(
+      "dominantEmotion",
+      dominant ? `${dominant[0]} ${Number(dominant[1]).toFixed(1)}%` : "-",
+    );
+    setText(
+      "positiveHighlight",
+      data.highlights?.positive || "Tidak ada komentar positif.",
+    );
+    setText(
+      "negativeHighlight",
+      data.highlights?.negative || "Tidak ada komentar negatif.",
+    );
+    setText(
+      "analysisStatus",
+      `Analisis selesai · ${number(data.total_comments)} komentar`,
+    );
+    setText(
+      "summaryText",
+      `Audiens menunjukkan ${positive >= 50 ? "respons yang dominan positif" : "respons yang beragam"} dengan ${positive.toFixed(1)}% sentimen positif dan ${negative.toFixed(1)}% sentimen negatif. ${dominant ? `Emosi dominan adalah ${dominant[0]}.` : ""}`,
+    );
+
+    comments = Array.isArray(data.comments) ? data.comments : [];
+    renderCategories();
+    renderSpectrum(emotions);
+    applyFilters();
+  }
+
+  function renderCategories() {
+    ["positive", "neutral", "negative"].forEach((sentiment) => {
+      const items = comments.filter(
+        (comment) => comment.sentiment === sentiment,
+      );
+      setText(
+        `${sentiment}Count`,
+        `${items.length.toLocaleString("id-ID")} komentar`,
+      );
+      document.getElementById(`${sentiment}Comments`).innerHTML =
+        items
+          .slice(0, 2)
+          .map(
+            (comment) =>
+              `<div class="comment-mini"><strong>${escapeHtml(comment.emotion || sentiment)}</strong>${escapeHtml(comment.text)}</div>`,
+          )
+          .join("") || '<div class="comment-mini">Belum ada komentar.</div>';
+    });
+  }
+
+  function renderSpectrum(emotions) {
+    const entries = Object.entries(emotions).sort((a, b) => b[1] - a[1]);
+    document.getElementById("emotionSpectrum").innerHTML =
+      entries
+        .map(
+          ([emotion, value]) =>
+            `<div class="emotion-row"><div class="emotion-line"><span>${escapeHtml(emotion)}</span><span>${Number(value).toFixed(1)}%</span></div><div class="bar"><i style="width:${Math.min(100, Number(value))}%"></i></div></div>`,
+        )
+        .join("") || "<p>Belum ada data emosi.</p>";
+  }
+
+  function applyFilters() {
+    const filter = document.getElementById("sentimentFilter").value;
+    const search = document
+      .getElementById("commentSearch")
+      .value.toLowerCase()
+      .trim();
+    const order = document.getElementById("sortOrder").value;
+    const filtered = comments.filter(
+      (comment) =>
+        (filter === "all" || comment.sentiment === filter) &&
+        (!search || comment.text.toLowerCase().includes(search)),
+    );
+    if (order === "likes") filtered.sort((a, b) => b.likes - a.likes);
+    if (order === "newest")
+      filtered.sort((a, b) => new Date(b.time) - new Date(a.time));
+    if (order === "oldest")
+      filtered.sort((a, b) => new Date(a.time) - new Date(b.time));
+    document.getElementById("commentsTableBody").innerHTML =
+      filtered
+        .map(
+          (comment) =>
+            `<tr><td>${escapeHtml(comment.text)}</td><td><span class="badge badge-${comment.sentiment}">${escapeHtml(comment.sentiment)}</span></td><td>${number(comment.likes)}</td><td>${new Date(comment.time).toLocaleString("id-ID")}</td></tr>`,
+        )
+        .join("") ||
+      '<tr><td colspan="4">Tidak ada komentar yang cocok.</td></tr>';
+  }
+
+  ["sentimentFilter", "sortOrder", "commentSearch"].forEach((id) =>
+    document.getElementById(id).addEventListener("input", applyFilters),
+  );
+
+  document
+    .getElementById("downloadReportBtn")
+    .addEventListener("click", async () => {
+      try {
+        const response = await fetch("/download-report", { method: "POST" });
+        if (!response.ok) throw new Error("Download gagal.");
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(await response.blob());
+        link.download = "YTEmotionReport.xlsx";
+        link.click();
+      } catch (error) {
+        alert(error instanceof Error ? error.message : "Download gagal.");
+      }
+    });
 });

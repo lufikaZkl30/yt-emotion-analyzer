@@ -1,371 +1,285 @@
-<!DOCTYPE html>
-<html lang="en" class="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YTEmotionAnalyzer</title>
-    
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Chart.js CDN -->
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YT Emotion Analyzer</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      href="{{ url_for('static', filename='logo.png') }}"
+    />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="shell topbar-inner">
+        <a class="brand" href="#hero">
+          <img
+            class="brand-logo"
+            src="{{ url_for('static', filename='logo.png') }}"
+            alt="YT Emotion Analyzer"
+          />
+          <span>YT Emotion Analyzer</span>
+        </a>
+        <nav>
+          <a href="#hero">Beranda</a>
+          <a href="#analisis-section">Analisis</a>
+          <a href="#kategori-komentar">Komentar</a>
+          <a href="#spectrum-section">Emosi</a>
+        </nav>
+      </div>
+    </header>
 
-    <!-- Google Font (Inter) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-
-    <!-- Custom Styles -->
-    <link rel="stylesheet" href="/static/style.css">
-
-    <!-- Fungsi download hasil ke excel -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
-    <link rel="icon" type="image/png" href="/static/logo.png">
-
-</head>
-<body class="min-h-screen antialiased">
-
-    <!-- 
-      =================================
-      LANDING PAGE
-      =================================
-    -->
-    <main id="landingPage" class="main-background flex flex-col items-center justify-center min-h-screen p-4 text-center transition-opacity duration-500">
-
-        <!-- Header -->
-        <header class="absolute top-0 left-0 right-0 p-5 md:p-6 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <img src="{{ url_for('static', filename='logo.png') }}"
-                    alt="Logo"
-                    class="logo-img w-9 h-9 md:w-10 md:h-10 object-contain">
-                <span class="brand-name text-lg md:text-xl">YT Emotion Analyzer</span>
-            </div>
-            <!-- Subtle version badge -->
-            <span class="hidden sm:inline-flex items-center gap-1.5 text-xs text-slate-500 border border-slate-700/50 rounded-full px-3 py-1 bg-white/[0.02]">
-                <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-                Youtube Sentiment Analysis
-            </span>
-        </header>
-
-        <!-- Main Content -->
-        <div class="flex flex-col items-center max-w-3xl w-full px-4 relative z-10">
-
-            <!-- Eyebrow label -->
-            <div class="inline-flex items-center gap-2 text-xs font-semibold text-cyan-400 tracking-widest uppercase mb-6 bg-cyan-400/10 border border-cyan-400/20 rounded-full px-4 py-1.5">
-                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                YouTube Comment Analyzer
-            </div>
-
-            <h1 class="hero-title text-4xl md:text-6xl font-black mb-5 leading-tight tracking-tight">
-                Understand Audience<br>Emotions
-            </h1>
-            <p class="text-base md:text-lg text-slate-400 max-w-xl mb-10 leading-relaxed font-light">
-                Paste a YouTube video link to get an AI-powered analysis of audience sentiment and emotions straight from the comments.
-            </p>
-
-            <form id="analysisForm" class="w-full max-w-2xl">
-                <div class="flex flex-col sm:flex-row items-center gap-3">
-                    <div class="relative flex-grow w-full">
-                        <!-- YouTube icon -->
-                        <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                        <input id="youtubeLinkInput" type="text" placeholder="Paste a YouTube video link..."
-                            required
-                            class="w-full h-14 pl-12 pr-4 rounded-xl text-sm text-slate-100
-                            focus:outline-none transition-all">
-                    </div>
-                    <button id="analyzeButton" type="submit"
-                        class="w-full sm:w-auto h-14 px-8 rounded-xl text-sm font-semibold text-white
-                        focus:outline-none disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                        Analyze
-                    </button>
-                </div>
-            </form>
-
-            <!-- Loading Indicator -->
-            <div id="loadingIndicator"
-                class="hidden fixed inset-0 flex flex-col items-center justify-center z-50 gap-5">
-                <div class="loader"></div>
-                <div class="text-center">
-                    <p class="text-slate-200 text-base font-semibold mb-1">Analyzing comments...</p>
-                    <p class="text-slate-500 text-sm">This may take a moment for large datasets</p>
-                </div>
-            </div>
-
-            <!-- Error Message -->
-            <div id="errorMessage" class="hidden mt-6 p-4 max-w-xl w-full text-sm" role="alert">
-                <strong class="font-semibold">Error:</strong> <span id="errorText"></span>
-            </div>
+    <main>
+      <section class="hero" id="hero">
+        <div class="shell hero-content">
+          <span class="eyebrow">YouTube audience intelligence</span>
+          <h1 class="font-display">Welcome to<br />Emotion Valley</h1>
+          <p class="hero-copy">
+            Ubah komentar YouTube menjadi peta sentimen dan emosi yang jernih,
+            lalu gunakan insight-nya untuk memahami audiens.
+          </p>
+          <form class="analyzer-form" id="analysisForm">
+            <svg aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M19.6 3.2c-3.6-.2-11.6-.2-15.2 0C.5 3.5.1 5.8.1 12c0 6.2.5 8.5 4.3 8.8 3.6.2 11.6.2 15.2 0 3.9-.3 4.4-2.6 4.4-8.8-.1-6.2-.5-8.5-4.4-8.8zM9 16V8l8 4-8 4z"
+              />
+            </svg>
+            <input
+              id="youtubeLinkInput"
+              type="url"
+              placeholder="Tempelkan tautan video YouTube di sini..."
+              required
+            />
+            <button class="go-btn" id="analyzeButton" type="submit">
+              GO <span aria-hidden="true">→</span>
+            </button>
+          </form>
+          <div id="errorMessage" class="error hidden" role="alert">
+            <strong>Error:</strong> <span id="errorText"></span>
+          </div>
         </div>
+        <div class="hero-art">
+          <img
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWb0W89l0528DNDAsSyAfxbFPE6PLfc9w1T8adem22eyixx62VnXGI2wVGMedYB5qzTTTjxMpui6CW8I88yPg5y1DR_-f1mLNQQxbq9Zf5HwiZud1gblVngo9iEucJYwqYSdWSzfJoTZb5VFhCSba3LN6eqI_ija2om9Y1QHm85AiJ8dN0lR6CJEeD4nEVW8Q_3VZ68chSq4BDGRnykKzt-KJ1oCTPqLZ_6RxWrVm8i5FKY_w0zoVMI7vyo5Di_mEEzVI"
+            alt="Pemandangan Emotion Valley"
+          />
+          <div class="art-fade"></div>
+          <div class="pulse-pill">● Hasil insight akan muncul di sini</div>
+        </div>
+      </section>
 
-        <!-- Decorative blobs -->
-        <div class="pointer-events-none absolute left-0 bottom-0 w-72 h-72 bg-blue-600/5 rounded-full blur-3xl"></div>
-        <div class="pointer-events-none absolute right-0 top-1/3 w-96 h-96 bg-purple-600/5 rounded-full blur-3xl"></div>
+      <section class="section shell" id="analisis-section">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Executive report</span>
+            <h2 class="font-display">Hasil Analisis Video</h2>
+          </div>
+          <span class="status" id="analysisStatus">Menunggu analisis</span>
+        </div>
+        <div class="overview">
+          <article class="card video-card">
+            <img
+              id="videoThumbnail"
+              class="thumb"
+              src="https://placehold.co/800x450/e8e2ee/232742?text=YouTube+Video"
+              alt="Thumbnail video"
+            /><span class="channel">YouTube comment analysis</span>
+            <h3 class="video-title" id="videoTitle">
+              Masukkan URL video untuk memulai analisis.
+            </h3>
+            <div class="stats">
+              <div><small>Likes</small><strong id="totalLikes">0</strong></div>
+              <div>
+                <small>Komentar</small><strong id="totalComments">0</strong>
+              </div>
+              <div>
+                <small>Net score</small><strong id="netScore">-</strong>
+              </div>
+            </div>
+          </article>
+          <div class="report-column">
+            <div class="score-grid">
+              <article class="card score-card">
+                <span class="score-label">Skor sentimen</span
+                ><strong class="score-value" id="sentimentScore">-</strong
+                ><span class="status">Live API</span>
+              </article>
+              <article class="card score-card">
+                <span class="score-label">Sentimen positif</span
+                ><strong class="score-value green" id="positivePercent"
+                  >-</strong
+                >
+                <p>Proporsi komentar positif.</p>
+              </article>
+              <article class="card score-card">
+                <span class="score-label">Emosi dominan</span
+                ><strong class="score-value purple" id="dominantEmotion"
+                  >-</strong
+                >
+                <p>Label emosi terbanyak.</p>
+              </article>
+            </div>
+            <article class="summary">
+              <strong>Ringkasan Otomatis AI</strong>
+              <p id="summaryText">
+                Hasil analisis dari Python akan tampil di sini.
+              </p>
+              <small>TextBlob + Hugging Face emotion model</small>
+            </article>
+          </div>
+        </div>
+      </section>
 
+      <section class="section shell">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Content insights</span>
+            <h2 class="font-display">Wawasan Konten AI</h2>
+          </div>
+          <p>Insight mengikuti komentar video yang diproses.</p>
+        </div>
+        <div class="insight-grid">
+          <article class="card insight-card">
+            <h3>Topik Utama</h3>
+            <p>
+              Distribusi sentimen, emosi dominan, dan komentar dengan engagement
+              tertinggi.
+            </p>
+            <ul>
+              <li>Sentiment mapping</li>
+              <li>Emotion spectrum</li>
+              <li>Audience highlights</li>
+            </ul>
+          </article>
+          <article class="card insight-card">
+            <h3>Yang Disukai Audiens</h3>
+            <p id="positiveHighlight">Belum ada analisis positif.</p>
+          </article>
+          <article class="card insight-card">
+            <h3>Area Perbaikan</h3>
+            <p id="negativeHighlight">Belum ada analisis negatif.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section shell" id="kategori-komentar">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Distribution</span>
+            <h2 class="font-display">Klasifikasi Komentar</h2>
+          </div>
+        </div>
+        <div class="classification">
+          <article class="card category positive">
+            <h3>POSITIF</h3>
+            <div class="category-count" id="positiveCount">0 komentar</div>
+            <div class="category-comments" id="positiveComments"></div>
+          </article>
+          <article class="card category neutral">
+            <h3>NETRAL / INQUIRY</h3>
+            <div class="category-count" id="neutralCount">0 komentar</div>
+            <div class="category-comments" id="neutralComments"></div>
+          </article>
+          <article class="card category negative">
+            <h3>NEGATIF / KRITIS</h3>
+            <div class="category-count" id="negativeCount">0 komentar</div>
+            <div class="category-comments" id="negativeComments"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section shell" id="spectrum-section">
+        <div class="spectrum">
+          <article class="card">
+            <div class="section-head">
+              <div>
+                <span class="eyebrow">Psychological spectrum</span>
+                <h2 class="font-display">Emosi Audiens</h2>
+              </div>
+            </div>
+            <div id="emotionSpectrum"><p>Belum ada data emosi.</p></div>
+          </article>
+          <article class="recommend">
+            <span class="status">AI strategist</span>
+            <h2 class="font-display">Rekomendasi Tindakan</h2>
+            <ul>
+              <li>
+                Gunakan komentar paling disukai untuk menemukan bagian paling
+                resonan.
+              </li>
+              <li>
+                Jawab pertanyaan netral untuk mengurangi kebingungan audiens.
+              </li>
+              <li>Jadikan kritik sebagai masukan untuk video berikutnya.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="section shell">
+        <article class="card">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Raw audience voice</span>
+              <h2 class="font-display">Komentar Teranalisis</h2>
+            </div>
+            <button class="go-btn" id="downloadReportBtn" type="button">
+              UNDUH EXCEL
+            </button>
+          </div>
+          <div class="feed-tools">
+            <input
+              id="commentSearch"
+              type="search"
+              placeholder="Cari komentar..."
+            /><select id="sentimentFilter">
+              <option value="all">Semua sentimen</option>
+              <option value="positive">Positif</option>
+              <option value="neutral">Netral</option>
+              <option value="negative">Negatif</option></select
+            ><select id="sortOrder">
+              <option value="default">Urutan asli</option>
+              <option value="likes">Paling disukai</option>
+              <option value="newest">Terbaru</option>
+              <option value="oldest">Terlama</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Komentar</th>
+                  <th>Sentimen</th>
+                  <th>Likes</th>
+                  <th>Waktu</th>
+                </tr>
+              </thead>
+              <tbody id="commentsTableBody">
+                <tr>
+                  <td colspan="4">Analisis video untuk melihat komentar.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
     </main>
 
-    <!-- =================================
-     DASHBOARD PAGE
-     ================================= -->
-    <div id="dashboardPage"
-        class="hidden main-background min-h-screen p-4 md:p-8">
-    <div class="max-w-screen-2xl mx-auto space-y-6 relative z-10">
-
-        <!-- ===== HEADER ===== -->
-        <header class="flex flex-wrap items-center justify-between gap-4 pb-2">
-            <div class="flex items-center gap-3">
-                <!-- Back Button -->
-                <button id="backButton"
-                    class="p-2 transition-colors"
-                    title="Back to Home">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor"
-                        viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                    </svg>
-                </button>
-                <div>
-                    <h1 class="text-xl md:text-2xl font-bold text-slate-100">Analysis Dashboard</h1>
-                    <p class="text-xs text-slate-500 mt-0.5">YouTube Comment Emotion Insights</p>
-                </div>
-            </div>
-
-            <!-- Download Button -->
-            <button id="downloadReportBtn">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                    viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                </svg>
-                Download Report
-            </button>
-
-        </header>
-
-        <!-- ===== MAIN GRID ===== -->
-        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-
-            <!-- ========== LEFT COLUMN ========== -->
-            <div class="flex flex-col gap-5 xl:col-span-1">
-
-                <!-- VIDEO DETAILS -->
-                <div class="card p-5">
-                    <p class="text-xs text-slate-500 font-semibold uppercase tracking-widest mb-4">Video Details</p>
-                    <img id="videoThumbnail"
-                        class="mb-4 w-full aspect-video object-cover"
-                        alt="Video Thumbnail"
-                        src="https://placehold.co/600x400/0a0f1e/1e293b?text=..."
-                        onerror="this.src='https://placehold.co/600x400/0a0f1e/1e293b?text=Error'">
-                    <h4 id="videoTitle"
-                        class="text-sm font-semibold text-slate-200 leading-snug">Loading...</h4>
-                </div>
-
-                <!-- TOTAL STATS -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="card p-5 text-center">
-                        <p class="text-xs text-slate-500 font-medium mb-2 uppercase tracking-widest">Comments</p>
-                        <h3 id="totalComments" class="stat-number">0</h3>
-                    </div>
-                    <div class="card p-5 text-center">
-                        <p class="text-xs text-slate-500 font-medium mb-2 uppercase tracking-widest">Likes</p>
-                        <h3 id="totalLikes" class="stat-number">0</h3>
-                    </div>
-                </div>
-
-                <!-- COMMENT HIGHLIGHTS -->
-                <div class="card p-5">
-                    <p class="text-xs text-slate-500 font-semibold uppercase tracking-widest mb-4">Comment Highlights</p>
-                    <div class="flex flex-col gap-3">
-
-                        <!-- POSITIVE -->
-                        <div id="highlightPositive" class="p-4">
-                            <div class="flex items-center gap-2 mb-2">
-                                <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21H7a2 2 0 01-2-2V9a2 2 0 012-2h4"></path>
-                                </svg>
-                                <h5 class="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Most Positive</h5>
-                            </div>
-                            <p class="text-sm text-slate-400 italic leading-relaxed">...</p>
-                        </div>
-
-                        <!-- NEGATIVE -->
-                        <div id="highlightNegative" class="p-4">
-                            <div class="flex items-center gap-2 mb-2">
-                                <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.737 3H17a2 2 0 012 2v8a2 2 0 01-2 2h-4"></path>
-                                </svg>
-                                <h5 class="text-xs font-semibold text-red-400 uppercase tracking-wider">Most Negative</h5>
-                            </div>
-                            <p class="text-sm text-slate-400 italic leading-relaxed">...</p>
-                        </div>
-
-                        <!-- LIKED -->
-                        <div id="highlightLiked" class="p-4">
-                            <div class="flex items-center gap-2 mb-2">
-                                <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                                </svg>
-                                <h5 class="text-xs font-semibold text-blue-400 uppercase tracking-wider">Most Liked</h5>
-                            </div>
-                            <p class="text-sm text-slate-400 italic leading-relaxed">...</p>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-
-            <!-- ========== RIGHT COLUMN ========== -->
-            <div class="flex flex-col gap-5 xl:col-span-2">
-
-                <!-- CHARTS -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                    <div class="card p-5 flex flex-col">
-                        <p class="text-xs text-slate-500 font-semibold uppercase tracking-widest mb-1">Sentiment Summary</p>
-                        <p class="text-sm text-slate-600 mb-4">Overall comment sentiment (%)</p>
-                        <div class="relative flex-1 min-h-[220px]">
-                            <canvas id="sentimentChart" class="h-full w-full"></canvas>
-                            <div id="sentimentTotal"
-                                class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                <span class="text-3xl font-bold text-slate-100">0%</span>
-                                <span class="text-xs text-slate-500 mt-1">Total</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card p-5 flex flex-col">
-                        <p class="text-xs text-slate-500 font-semibold uppercase tracking-widest mb-1">Emotion Distribution</p>
-                        <p class="text-sm text-slate-600 mb-4">Detected emotions (%)</p>
-                        <div class="flex-1 min-h-[220px]">
-                            <canvas id="emotionChart" class="h-full w-full"></canvas>
-                        </div>
-
-                        <!-- Emotion Guide -->
-                        <div style="margin-top:1.25rem; border-top:1px solid rgba(148,163,184,0.1); padding-top:1rem;">
-                            <p style="font-size:0.7rem; color:#64748b; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:0.75rem;">
-                                📘 Emotion Guide
-                            </p>
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem 1rem;">
-                                <div style="display:flex; gap:0.5rem; align-items:flex-start;">
-                                    <span style="font-size:1rem; line-height:1.3;">😡</span>
-                                    <div>
-                                        <span style="font-size:0.72rem; font-weight:700; color:#F87171; display:block; margin-bottom:1px;">Anger</span>
-                                        <span style="font-size:0.65rem; color:#475569; line-height:1.4;">Komentar yang mengekspresikan kemarahan, frustrasi, atau ketidakpuasan yang kuat.</span>
-                                    </div>
-                                </div>
-                                <div style="display:flex; gap:0.5rem; align-items:flex-start;">
-                                    <span style="font-size:1rem; line-height:1.3;">😨</span>
-                                    <div>
-                                        <span style="font-size:0.72rem; font-weight:700; color:#A78BFA; display:block; margin-bottom:1px;">Fear</span>
-                                        <span style="font-size:0.65rem; color:#475569; line-height:1.4;">Komentar yang menunjukkan rasa takut, khawatir, atau cemas terhadap konten.</span>
-                                    </div>
-                                </div>
-                                <div style="display:flex; gap:0.5rem; align-items:flex-start;">
-                                    <span style="font-size:1rem; line-height:1.3;">😄</span>
-                                    <div>
-                                        <span style="font-size:0.72rem; font-weight:700; color:#FBBF24; display:block; margin-bottom:1px;">Joy</span>
-                                        <span style="font-size:0.65rem; color:#475569; line-height:1.4;">Komentar yang mencerminkan kesenangan, kebahagiaan, atau antusias yang tinggi.</span>
-                                    </div>
-                                </div>
-                                <div style="display:flex; gap:0.5rem; align-items:flex-start;">
-                                    <span style="font-size:1rem; line-height:1.3;">😢</span>
-                                    <div>
-                                        <span style="font-size:0.72rem; font-weight:700; color:#60A5FA; display:block; margin-bottom:1px;">Sadness</span>
-                                        <span style="font-size:0.65rem; color:#475569; line-height:1.4;">Komentar yang mengungkapkan kesedihan, kekecewaan, atau perasaan kehilangan.</span>
-                                    </div>
-                                </div>
-                                <div style="display:flex; gap:0.5rem; align-items:flex-start;">
-                                    <span style="font-size:1rem; line-height:1.3;">🤢</span>
-                                    <div>
-                                        <span style="font-size:0.72rem; font-weight:700; color:#34D399; display:block; margin-bottom:1px;">Disgust</span>
-                                        <span style="font-size:0.65rem; color:#475569; line-height:1.4;">Komentar yang mengekspresikan rasa jijik atau penolakan terhadap sesuatu.</span>
-                                    </div>
-                                </div>
-                                <div style="display:flex; gap:0.5rem; align-items:flex-start;">
-                                    <span style="font-size:1rem; line-height:1.3;">😲</span>
-                                    <div>
-                                        <span style="font-size:0.72rem; font-weight:700; color:#38BDF8; display:block; margin-bottom:1px;">Surprise</span>
-                                        <span style="font-size:0.65rem; color:#475569; line-height:1.4;">Komentar yang mencerminkan rasa terkejut atau kagum terhadap isi video.</span>
-                                    </div>
-                                </div>
-                                <div style="display:flex; gap:0.5rem; align-items:flex-start;">
-                                    <span style="font-size:1rem; line-height:1.3;">😐</span>
-                                    <div>
-                                        <span style="font-size:0.72rem; font-weight:700; color:#9CA3AF; display:block; margin-bottom:1px;">Neutral</span>
-                                        <span style="font-size:0.65rem; color:#475569; line-height:1.4;">Komentar yang bersifat informatif atau deskriptif tanpa emosi yang dominan.</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- COMMENT FEED -->
-                <div class="card p-5">
-                    <p class="text-xs text-slate-500 font-semibold uppercase tracking-widest mb-1">Comment Feed</p>
-                    <p class="text-sm text-slate-600 mb-4">Live comments with sentiment analysis</p>
-
-                    <!-- Filter & Sort Controls -->
-                    <div class="flex flex-wrap justify-between items-center mb-4 gap-3">
-                        <input
-                            id="commentSearch"
-                            type="text"
-                            placeholder="Search comments..."
-                            class="flex-1 min-w-[180px]"
-                        />
-                        <div class="flex gap-2">
-                            <select id="sentimentFilter">
-                                <option value="all">All Sentiments</option>
-                                <option value="positive">Positive</option>
-                                <option value="negative">Negative</option>
-                                <option value="neutral">Neutral</option>
-                            </select>
-                            <select id="sortOrder">
-                                <option value="default">Default</option>
-                                <option value="likes">Most Liked</option>
-                                <option value="newest">Newest</option>
-                                <option value="oldest">Oldest</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Comment Table -->
-                    <div class="overflow-auto max-h-96 custom-scrollbar rounded-xl border border-white/5">
-                        <table class="w-full min-w-[600px] text-left">
-                            <thead>
-                                <tr>
-                                    <th class="p-3">Comment</th>
-                                    <th class="p-3">Sentiment</th>
-                                    <th class="p-3">Likes</th>
-                                    <th class="p-3">Time</th>
-                                </tr>
-                            </thead>
-                            <tbody id="commentsTableBody">
-                                <tr>
-                                    <td colspan="4" class="p-6 text-center text-slate-600 text-sm">
-                                        Analyze a video to see comments here.
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
+    <div id="loadingIndicator" class="loading hidden">
+      <div>
+        <div class="loader"></div>
+        <p>Menganalisis komentar, Tunggu sebentar yaa....</p>
+      </div>
     </div>
-    </div>
-
-    <!-- Custom Script -->
+    <footer>
+      <div class="shell">© 2026 YT Emotion Analyzer | lufikaZkl30</div>
+    </footer>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
-
-</body>
+  </body>
 </html>
